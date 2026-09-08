@@ -1,0 +1,9 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "sfrankle-grimoire-marketplace",
+  "version": "1.0.0",
+  "description": "Claude code skills by sfrankle", "owner": {
+    "name": "sfrankle"
+  },
+  "plugins": []
+}
