@@ -2,6 +2,7 @@
 # Usage: build-index.sh <rows.json>
 # Turns raw connector rows into $(hub_dir)/index.md.
 # On any error it prints one reason to stderr, exits 1 and leaves index.md as it was.
+# Warnings (such as a mapped column empty in every row) go to stderr and do not stop the build.
 
 here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=lib.sh
@@ -24,16 +25,31 @@ jq -e 'type == "object"' "$config" >/dev/null 2>&1 || fail "$config is not a val
 jq -e 'type == "array" and length > 0 and all(.[]; type == "object")' "$rows" >/dev/null 2>&1 \
   || fail "rows file is empty or malformed, index left unchanged."
 
-# A mapped title, summary or visibility column that no row has means the config names a column that was renamed.
-missing="$(jq -r --slurpfile cfg "$config" '
-  . as $rows
-  | ($cfg[0].fields // {}) as $f
-  | ["title", "summary", "visibility"][]
-  | select($f[.] != null and $f[.] != "")
-  | $f[.] as $name
-  | select(any($rows[]; (.properties // {}) | has($name)) | not)
-  | "\(.) (\($name))"' "$rows" 2>/dev/null | head -n 1)"
+# Validate the scopes shape up front, so a bad one is named instead of failing the row mapping.
+jq -e '.scopes == null or (.scopes | type) == "object"' "$config" >/dev/null 2>&1 \
+  || fail "scopes in $config must be an object, index left unchanged."
+
+# Mapped columns that no row has.
+# Rows only carry properties they have a value for, so an empty column looks the same as a renamed one.
+# Every page has a title, so a missing title column is a renamed column and fails.
+# Summary and visibility can be empty in every row, so they only warn.
+missing_cols() {
+  jq -r --slurpfile cfg "$config" --arg keys "$1" '
+    . as $rows
+    | ($cfg[0].fields // {}) as $f
+    | ($keys | split(" "))[]
+    | select($f[.] != null and $f[.] != "")
+    | $f[.] as $name
+    | select(any($rows[]; (.properties // {}) | has($name)) | not)
+    | "\(.) (\($name))"' "$rows" 2>/dev/null
+}
+missing="$(missing_cols title | head -n 1)"
 [ -z "$missing" ] || fail "mapped column $missing is in no row. Check config.json fields against the database, index left unchanged."
+while IFS= read -r col; do
+  [ -n "$col" ] && printf 'build-index: warning: mapped column %s is empty in every row. If it was renamed, fix config.json fields.\n' "$col" >&2
+done <<EOF_COLS
+$(missing_cols "summary visibility")
+EOF_COLS
 
 tmp="$(mktemp "$dir/.index.md.XXXXXX")" || fail "cannot write to $dir."
 trap 'rm -f "$tmp"' EXIT

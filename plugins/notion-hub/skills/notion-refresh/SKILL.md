@@ -27,6 +27,8 @@ In Claude Code that is `${CLAUDE_PLUGIN_ROOT}/scripts/`.
    Leave out properties the row does not have.
 4. Run `build-index.sh rows.json` with the hub folder's `rows.json`.
    It prints `Indexed N pages.` or one error line, which you report before stopping.
+   Report any warning lines it prints to stderr too.
+   Delete `rows.json` once the script has run, whether or not it succeeded, since it holds every private row.
    N must equal the row count from step 2, or report both numbers and stop.
 5. Run `scoped-index.sh` and keep only its `shared/` rows, preferring `shared/auto` or `shared/always`.
    Spot-check the first, middle and last of those, or fewer when fewer exist, and count how many you checked.

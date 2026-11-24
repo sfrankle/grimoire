@@ -236,6 +236,24 @@ test_cap_never_cut_over() {
   assert_contains "$out" "| Only always |" "never-cut over cap: always row kept"
 }
 
+# Cutting every cuttable row can still leave the output over the cap; the hook must say so.
+test_cap_over_after_cuts() {
+  setup; build
+  local out; out="$(NOTION_HUB_MAX_CHARS=600 run_hook "$HOME/notes/personal")"
+  assert_contains "$out" "rows cut" "over after cuts: rows-cut warning"
+  assert_contains "$out" "will be truncated" "over after cuts: over-cap warning too"
+  assert_contains "$out" "ask rows first" "over after cuts: says ask rows go first"
+}
+
+test_bad_scopes() {
+  setup; build
+  jq '.scopes = "Personal"' "$NOTION_HUB_DIR/config.json" > "$T/c" && mv "$T/c" "$NOTION_HUB_DIR/config.json"
+  local out; out="$(run_hook "$HOME/code/app")"
+  assert_eq "1" "$(line_count "$out")" "bad scopes: one line"
+  assert_contains "$out" "not an object" "bad scopes: names the shape"
+  assert_not_contains "$out" "not valid JSON" "bad scopes: not reported as a JSON error"
+}
+
 test_many_rows() {
   setup
   jq -n '[range(0; 600) | {url: "https://www.notion.so/r\(.)", properties: {Name: "Page number \(.)", Summary: "A summary line long enough to matter for the cap", Load: (if . % 50 == 0 then "Always" elif . % 7 == 0 then "Only when asked" else null end), Area: "Homelab"}}]' > "$T/many.json"
@@ -253,4 +271,5 @@ test_shared_folder; test_private_folder; test_prefix_not_match
 test_order; test_always_list; test_always_opt_in; test_age_nudge; test_cap
 test_one_day_old; test_string_private_paths; test_cap_cut_order
 test_cap_warning_text; test_cap_never_cut_over; test_many_rows
+test_cap_over_after_cuts; test_bad_scopes
 finish

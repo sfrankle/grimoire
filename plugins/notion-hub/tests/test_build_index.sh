@@ -90,15 +90,38 @@ test_no_config() {
 }
 
 test_missing_column() {
-  local k
-  for k in title summary visibility; do
-    setup; printf 'old index\n' > "$NOTION_HUB_DIR/index.md"
-    jq --arg k "$k" '.fields[$k] = "Renamed column"' "$NOTION_HUB_DIR/config.json" > "$NOTION_HUB_DIR/c.tmp" && mv "$NOTION_HUB_DIR/c.tmp" "$NOTION_HUB_DIR/config.json"
-    local err; err="$(bash "$BUILD" "$ROWS" 2>&1 >/dev/null)"
-    assert_exit 1 "missing $k column exits 1" -- bash "$BUILD" "$ROWS"
-    assert_contains "$err" "Renamed column" "missing $k column names the property"
-    assert_eq "old index" "$(cat "$NOTION_HUB_DIR/index.md")" "missing $k column keeps index.md"
+  setup; printf 'old index\n' > "$NOTION_HUB_DIR/index.md"
+  jq '.fields.title = "Renamed column"' "$NOTION_HUB_DIR/config.json" > "$NOTION_HUB_DIR/c.tmp" && mv "$NOTION_HUB_DIR/c.tmp" "$NOTION_HUB_DIR/config.json"
+  local err; err="$(bash "$BUILD" "$ROWS" 2>&1 >/dev/null)"
+  assert_exit 1 "missing title column exits 1" -- bash "$BUILD" "$ROWS"
+  assert_contains "$err" "Renamed column" "missing title column names the property"
+  assert_eq "old index" "$(cat "$NOTION_HUB_DIR/index.md")" "missing title column keeps index.md"
+}
+
+# A summary or visibility column with no value in any row is left out of every row, so it only warns.
+test_empty_column() {
+  local k name
+  for k in summary visibility; do
+    setup
+    name="$(jq -r --arg k "$k" '.fields[$k]' "$NOTION_HUB_DIR/config.json")"
+    jq --arg n "$name" 'map(.properties |= del(.[$n]))' "$ROWS" > "$NOTION_HUB_DIR/rows.json"
+    local out err
+    err="$(bash "$BUILD" "$NOTION_HUB_DIR/rows.json" 2>&1 >/dev/null)"
+    assert_exit 0 "empty $k column still builds" -- bash "$BUILD" "$NOTION_HUB_DIR/rows.json"
+    assert_contains "$err" "warning: mapped column $k ($name)" "empty $k column warns"
+    out="$(bash "$BUILD" "$NOTION_HUB_DIR/rows.json" 2>/dev/null)"
+    assert_eq "Indexed 6 pages." "$out" "empty $k column indexes every row"
   done
+  assert_contains "$(row 'Working style')" "- shared/" "no visibility values means shared"
+}
+
+test_bad_scopes() {
+  setup; printf 'old index\n' > "$NOTION_HUB_DIR/index.md"
+  jq '.scopes = "Personal"' "$NOTION_HUB_DIR/config.json" > "$NOTION_HUB_DIR/c.tmp" && mv "$NOTION_HUB_DIR/c.tmp" "$NOTION_HUB_DIR/config.json"
+  local err; err="$(bash "$BUILD" "$ROWS" 2>&1 >/dev/null)"
+  assert_exit 1 "string scopes exits 1" -- bash "$BUILD" "$ROWS"
+  assert_contains "$err" "scopes" "string scopes names scopes"
+  assert_eq "old index" "$(cat "$NOTION_HUB_DIR/index.md")" "string scopes keeps index.md"
 }
 
 test_string_config_values() {
@@ -114,5 +137,5 @@ test_string_config_values() {
 
 test_flags; test_sort; test_escaping; test_header; test_optional
 test_empty_keeps_old; test_malformed_keeps_old; test_no_config
-test_missing_column; test_string_config_values
+test_missing_column; test_empty_column; test_bad_scopes; test_string_config_values
 finish

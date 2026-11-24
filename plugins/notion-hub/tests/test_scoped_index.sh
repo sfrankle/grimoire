@@ -57,5 +57,13 @@ test_missing() {
   assert_exit 1 "no config: exits 1" -- env CLAUDE_PROJECT_DIR="$HOME" bash "$SCOPED"
 }
 
-test_shared_folder; test_private_folder; test_always_opt_in; test_missing
+test_bad_scopes() {
+  setup
+  jq '.scopes = "Personal"' "$NOTION_HUB_DIR/config.json" > "$T/c" && mv "$T/c" "$NOTION_HUB_DIR/config.json"
+  local err; err="$(scoped "$HOME/code/app")"
+  assert_exit 1 "string scopes: exits 1" -- env CLAUDE_PROJECT_DIR="$HOME" bash "$SCOPED"
+  assert_contains "$err" "must be an object" "string scopes: names the shape, not JSON syntax"
+}
+
+test_shared_folder; test_private_folder; test_always_opt_in; test_missing; test_bad_scopes
 finish

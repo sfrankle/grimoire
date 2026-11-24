@@ -33,10 +33,11 @@ main() {
     return 0
   fi
 
-  scope_setup "$config" || {
-    echo "Notion hub config is not valid JSON. Run /notion-setup to fix it."
-    return 0
-  }
+  scope_setup "$config"
+  case $? in
+    1) echo "Notion hub config is not valid JSON. Run /notion-setup to fix it." && return 0 ;;
+    2) echo "Notion hub config has scopes that is not an object. Run /notion-setup to fix it." && return 0 ;;
+  esac
   local in_scope="$SCOPE_IN" line
 
   local out=""
@@ -117,10 +118,11 @@ EOF_ROWS
     sum=$((sum - len[i]))
     next=$((next + 1))
     cut=$((cut + 1))
-    warn="Warning: $cut index rows cut to fit session start. Shorten summaries or move pages to the ask load value."$'\n'
+    warn="Warning: $cut index rows cut to fit session start, ask rows first. Shorten summaries or rules to fit more."$'\n'
   done
-  if [ "$cut" = 0 ] && [ $((fixed + sum)) -gt "$max" ]; then
-    warn="Warning: rules and always rows alone are over the $max character session start cap. Shorten them."$'\n'
+  # Cutting every ask and auto row can still leave the rules, header and always rows over the cap.
+  if [ $((fixed + sum + ${#warn})) -gt "$max" ]; then
+    warn="${warn}Warning: rules, header and always rows alone are over the $max character session start cap, so the output will be truncated. Shorten them."$'\n'
   fi
   for ((i = 0; i < n; i++)); do
     [ "${r_keep[i]}" = 1 ] && body="$body${r_text[i]}"$'\n'

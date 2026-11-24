@@ -17,5 +17,9 @@ dir="$(hub_dir)"
 need_jq || fail "jq is required but not installed."
 [ -f "$dir/config.json" ] || fail "no config at $dir/config.json. Run /notion-setup first."
 [ -f "$dir/index.md" ] || fail "no index at $dir/index.md. Run /notion-refresh first."
-scope_setup "$dir/config.json" || fail "$dir/config.json is not a valid JSON object."
+scope_setup "$dir/config.json"
+case $? in
+  1) fail "$dir/config.json is not a valid JSON object." ;;
+  2) fail "scopes in $dir/config.json must be an object. Run /notion-setup to fix it." ;;
+esac
 scoped_rows "$dir/index.md"

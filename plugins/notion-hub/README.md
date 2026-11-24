@@ -73,8 +73,8 @@ None of them are in this repo.
 - `rules.private.md`: optional rules that would reveal private material, shown only in private folders.
 - `index.md`: the cached index, written by `/notion-refresh`.
   A new index applies from the next session, because the hook runs at session start.
-- `rows.json`: transient, written by `/notion-refresh` before it builds the index.
-  It holds every row, including private ones, so keep it out of shared folders.
+- `rows.json`: transient, written by `/notion-refresh` before it builds the index and deleted right after.
+  It holds every row, including private ones, so if a refresh is interrupted and leaves it behind, delete it.
 
 ## Changing things later
 
