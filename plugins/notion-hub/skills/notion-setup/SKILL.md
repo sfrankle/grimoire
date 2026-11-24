@@ -1,0 +1,49 @@
+---
+name: notion-setup
+description: Set up or edit the Notion hub config and rules, then build the first index.
+disable-model-invocation: true
+---
+
+# Notion setup
+
+Create or edit `config.json`, `rules.md` and optional `rules.private.md` in the hub folder, using the Notion connector.
+The hub folder is `$NOTION_HUB_DIR`, or `~/.claude/notion-hub` when that is unset.
+Create it if missing.
+The shapes to fill are `../../examples/config.json` and `../../examples/rules.md`.
+Ask the user one question at a time, as plain prose.
+
+## Steps
+
+1. Check the Notion connector is available.
+   If not, say so in one plain line and stop.
+2. Check `jq` is installed.
+   If not, say so and give the install command for the user's system, such as `brew install jq`, then stop.
+3. If `config.json` exists, load it and treat this run as an edit.
+   Keep every unchanged value and show a diff before writing.
+4. Ask the user for the hub database link, or search Notion for it and let them pick.
+5. Fetch the data source and read its schema: property names and options.
+   Propose `fields` from the property names, with `title` and `summary` required.
+   Propose `values` from the options:
+   - Map each `edit` option to `read_only`, `small_edits` or `agent_owned`.
+     If the hub splits this across two columns, such as an owner and an access column, propose merging them into one.
+   - Map `load` options to `always` and `ask`.
+     Anything else counts as auto.
+   Confirm the mapping with the user.
+6. Ask which `visibility` values are private, and which folders may see private rows.
+   These become `scopes.private_values` and `scopes.private_paths`.
+   Ask before turning on `always_shows_everywhere`, and explain that one wrong load value would then expose a private page everywhere.
+7. Set `new_pages`.
+   `defaults` may not set the visibility or load field.
+   Ask for an optional `template_url` and `marker`.
+8. Seed `rules.md` with three short questions:
+   - What goes in the hub?
+   - What goes elsewhere?
+   - When should you suggest a save?
+   Offer `rules.private.md` for rules that would reveal private material, such as where personal documents live.
+9. Show both files, and write only after the user confirms.
+10. Load the `notion-refresh` skill to build the first index.
+
+## Other agents
+
+The session-start hook that prints these files is Claude Code only.
+Other agents can read the same files by hand.
