@@ -2,7 +2,6 @@
 # Usage: build-index.sh <rows.json>
 # Turns raw connector rows into $(hub_dir)/index.md.
 # On any error it prints one reason to stderr, exits 1 and leaves index.md as it was.
-# Warnings (such as a mapped column empty in every row) go to stderr and do not stop the build.
 
 here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=lib.sh
@@ -20,36 +19,11 @@ config="$dir/config.json"
 need_jq || fail "jq is required but not installed."
 [ -n "$rows" ] || fail "usage: build-index.sh <rows.json>"
 [ -f "$config" ] || fail "no config at $config. Run /notion-setup first."
-jq -e 'type == "object"' "$config" >/dev/null 2>&1 || fail "$config is not a valid JSON object."
 [ -f "$rows" ] || fail "rows file not found: $rows"
-jq -e 'type == "array" and length > 0 and all(.[]; type == "object")' "$rows" >/dev/null 2>&1 \
-  || fail "rows file is empty or malformed, index left unchanged."
 
-# Validate the scopes shape up front, so a bad one is named instead of failing the row mapping.
-jq -e '.scopes == null or (.scopes | type) == "object"' "$config" >/dev/null 2>&1 \
-  || fail "scopes in $config must be an object, index left unchanged."
-
-# Mapped columns that no row has.
-# Rows only carry properties they have a value for, so an empty column looks the same as a renamed one.
-# Every page has a title, so a missing title column is a renamed column and fails.
-# Summary and visibility can be empty in every row, so they only warn.
-missing_cols() {
-  jq -r --slurpfile cfg "$config" --arg keys "$1" '
-    . as $rows
-    | ($cfg[0].fields // {}) as $f
-    | ($keys | split(" "))[]
-    | select($f[.] != null and $f[.] != "")
-    | $f[.] as $name
-    | select(any($rows[]; (.properties // {}) | has($name)) | not)
-    | "\(.) (\($name))"' "$rows" 2>/dev/null
-}
-missing="$(missing_cols title | head -n 1)"
-[ -z "$missing" ] || fail "mapped column $missing is in no row. Check config.json fields against the database, index left unchanged."
-while IFS= read -r col; do
-  [ -n "$col" ] && printf 'build-index: warning: mapped column %s is empty in every row. If it was renamed, fix config.json fields.\n' "$col" >&2
-done <<EOF_COLS
-$(missing_cols "summary visibility")
-EOF_COLS
+# Every page has a title, so a title column in no row means config.json fields is out of date.
+jq -e --slurpfile cfg "$config" '$cfg[0].fields.title as $t | any(.[]; (.properties // {}) | has($t))' "$rows" >/dev/null 2>&1 \
+  || fail "no row has the mapped title column, or the rows are malformed. Check config.json fields, index left unchanged."
 
 tmp="$(mktemp "$dir/.index.md.XXXXXX")" || fail "cannot write to $dir."
 trap 'rm -f "$tmp"' EXIT
@@ -59,7 +33,7 @@ url="$(jq -r '.hub.database_url // ""' "$config")"
 
 {
   printf '# Notion hub index: %s\n\n' "$name"
-  printf 'Built %s (epoch %s) from %s.\n' "$(date +%Y-%m-%d)" "$(date +%s)" "$url"
+  printf 'Built %s from %s. If that is more than a week ago, suggest /notion-refresh.\n' "$(date +%Y-%m-%d)" "$url"
   cat <<'HEADER'
 Row flags: shared|private / always|auto|ask / ro|edit|own.
 always = fetch before your first answer. auto = fetch when the task matches the title, summary or keywords. ask = fetch only when the user names it.
@@ -81,7 +55,8 @@ HEADER
       | (prop("visibility")) as $vis
       | (prop("load")) as $load
       | (prop("edit")) as $edit
-      | { title: (prop("title") | join(" ") | norm),
+      | (prop("title") | join(" ") | norm) as $title
+      | { title: $title,
           line: ([
             ( ((if ($vis | length) > 0 and all($vis[]; . as $x | ($priv | index($x)) != null)
                 then "private" else "shared" end)
@@ -91,7 +66,7 @@ HEADER
               + "/"
               + (if hit($edit; $v.edit.small_edits) then "edit"
                  elif hit($edit; $v.edit.agent_owned) then "own" else "ro" end)) ),
-            (prop("title") | join(" ") | norm),
+            $title,
             (prop("summary") | join(" ") | norm),
             (opt("category")),
             (opt("keywords")),

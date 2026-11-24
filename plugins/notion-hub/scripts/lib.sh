@@ -27,22 +27,19 @@ need_jq() {
 # Usage: scope_setup <config.json>
 # Sets SCOPE_IN=1 when CLAUDE_PROJECT_DIR (or PWD) is inside a scopes.private_paths folder.
 # Sets SCOPE_EVERYWHERE=1 when scopes.always_shows_everywhere is true.
-# Returns 1 when the config is not a JSON object, 2 when scopes is set but is not an object.
-# A bad scopes shape is an error rather than "no scopes", so private rows never leak by default.
+# Returns 1 when the config or its scopes is not a JSON object, so private rows never leak by default.
 scope_setup() {
   local settings first=1 line p project
   SCOPE_IN=0
   SCOPE_EVERYWHERE=0
-  # First line: the always-shows-everywhere flag (or bad_scopes), then one private path per line.
+  # First line: the always-shows-everywhere flag, then one private path per line.
   # private_paths may be one string or a list.
   settings="$(jq -r '
-    if type != "object" then error("not an object")
-    elif .scopes != null and (.scopes | type) != "object" then "bad_scopes"
+    if type != "object" or ((.scopes | type) | IN("object", "null") | not) then error("bad config")
     else
       ((.scopes.always_shows_everywhere == true) | tostring),
       ((.scopes.private_paths // []) | if type == "array" then .[] else . end | strings)
     end' "$1" 2>/dev/null)" || return 1
-  [ "$settings" = "bad_scopes" ] && return 2
   project="${CLAUDE_PROJECT_DIR:-$PWD}"
   project="${project%/}"
   while IFS= read -r line; do

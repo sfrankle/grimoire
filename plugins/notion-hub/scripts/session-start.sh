@@ -8,7 +8,6 @@
 # Source: https://code.claude.com/docs/en/hooks (checked 2026-11-24).
 # The default below leaves 500 characters of headroom.
 DEFAULT_MAX_CHARS=9500
-STALE_DAYS=7
 
 exec 2>/dev/null
 
@@ -17,14 +16,10 @@ here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 . "$here/lib.sh"
 
 main() {
-  local dir config rules priv_rules index
+  local dir out max
   dir="$(hub_dir)"
-  config="$dir/config.json"
-  rules="$dir/rules.md"
-  priv_rules="$dir/rules.private.md"
-  index="$dir/index.md"
 
-  if [ ! -f "$config" ]; then
+  if [ ! -f "$dir/config.json" ]; then
     echo "Notion hub is not set up. Run /notion-setup to connect your database."
     return 0
   fi
@@ -32,104 +27,39 @@ main() {
     echo "Notion hub needs jq to read its config. Install jq and start a new session."
     return 0
   fi
-
-  scope_setup "$config"
-  case $? in
-    1) echo "Notion hub config is not valid JSON. Run /notion-setup to fix it." && return 0 ;;
-    2) echo "Notion hub config has scopes that is not an object. Run /notion-setup to fix it." && return 0 ;;
-  esac
-  local in_scope="$SCOPE_IN" line
-
-  local out=""
-  if [ -f "$rules" ]; then out="$(cat "$rules")"$'\n\n'; fi
-  if [ "$in_scope" = 1 ] && [ -f "$priv_rules" ]; then out="$out$(cat "$priv_rules")"$'\n\n'; fi
-
-  if [ ! -f "$index" ]; then
-    printf '%s%s\n' "$out" "No index yet. Run /notion-refresh to build it."
+  if ! scope_setup "$dir/config.json"; then
+    echo "Notion hub config is invalid. Run /notion-setup to fix it."
     return 0
   fi
 
-  # Index header (everything above the first row) and the age line.
-  local header epoch now age age_note=""
-  header="$(awk '/^- /{exit} {print}' "$index")"
-  epoch="$(printf '%s\n' "$header" | sed -n 's/^Built .*(epoch \([0-9][0-9]*\)).*/\1/p' | head -n 1)"
-  if [ -n "$epoch" ]; then
-    now="$(date +%s)"
-    age=$(( (now - epoch) / 86400 ))
-    if [ "$age" = 1 ]; then age_note="Index is 1 day old."; else age_note="Index is $age days old."; fi
-    if [ "$age" -gt "$STALE_DAYS" ]; then
-      age_note="$age_note Run /notion-refresh to update it."
-    fi
+  out=""
+  [ -f "$dir/rules.md" ] && out="$(cat "$dir/rules.md")"$'\n\n'
+  [ "$SCOPE_IN" = 1 ] && [ -f "$dir/rules.private.md" ] && out="$out$(cat "$dir/rules.private.md")"$'\n\n'
+
+  if [ ! -f "$dir/index.md" ]; then
+    printf '%sNo index yet. Run /notion-refresh to build it.\n' "$out"
+    return 0
   fi
-  out="$out$header"$'\n'
-  [ -n "$age_note" ] && out="$out$age_note"$'\n'
-  out="$out"$'\n'
 
-  local rows
-  rows="$(scoped_rows "$index")"
+  # The index header is everything above the first row.
+  out="$out$(awk '/^- /{exit} {print}' "$dir/index.md")"$'\n\n'
+  printf '%s' "$out"
 
-  local max="${NOTION_HUB_MAX_CHARS:-$DEFAULT_MAX_CHARS}"
+  max="${NOTION_HUB_MAX_CHARS:-$DEFAULT_MAX_CHARS}"
   case "$max" in '' | *[!0-9]*) max="$DEFAULT_MAX_CHARS" ;; esac
 
-  # Rows as arrays: text, load flag, kept marker.
-  local -a r_text=() r_load=() r_keep=()
-  local n=0 flags rest
-  if [ -n "$rows" ]; then
-    while IFS= read -r line; do
-      flags="${line#- }"
-      flags="${flags%% *}"
-      rest="${flags#*/}"
-      r_text[n]="$line"
-      r_load[n]="${rest%%/*}"
-      r_keep[n]=1
-      n=$((n + 1))
-    done <<EOF_ROWS
-$rows
-EOF_ROWS
-  fi
-
-  # The always-fetch list covers rows that are never cut, so it is fixed up front.
-  local always="" title url i
-  for ((i = 0; i < n; i++)); do
-    if [ "${r_load[i]}" = "always" ]; then
-      rest="${r_text[i]#*" | "}"
-      title="${rest%%" | "*}"
-      url="${r_text[i]##*" | "}"
-      always="$always- $title: $url"$'\n'
-    fi
-  done
-  [ -n "$always" ] && always="Fetch before your first answer:"$'\n'"$always"
-
-  # Cut ask rows then auto rows, each from the end, until the output fits.
-  # Row lengths are summed once, so the cost is linear in the number of rows.
-  local cut=0 warn="" sum=0 fixed next=0 body=""
-  local -a len=() order=()
-  for ((i = 0; i < n; i++)); do
-    len[i]=$(( ${#r_text[i]} + 1 ))
-    sum=$((sum + len[i]))
-  done
-  for ((i = n - 1; i >= 0; i--)); do [ "${r_load[i]}" = "ask" ] && order[${#order[@]}]=$i; done
-  for ((i = n - 1; i >= 0; i--)); do [ "${r_load[i]}" = "auto" ] && order[${#order[@]}]=$i; done
-  fixed=${#out}
-  [ -n "$always" ] && fixed=$((fixed + 1 + ${#always}))
-  while [ $((fixed + sum + ${#warn})) -gt "$max" ] && [ "$next" -lt "${#order[@]}" ]; do
-    i=${order[next]}
-    r_keep[i]=0
-    sum=$((sum - len[i]))
-    next=$((next + 1))
-    cut=$((cut + 1))
-    warn="Warning: $cut index rows cut to fit session start, ask rows first. Shorten summaries or rules to fit more."$'\n'
-  done
-  # Cutting every ask and auto row can still leave the rules, header and always rows over the cap.
-  if [ $((fixed + sum + ${#warn})) -gt "$max" ]; then
-    warn="${warn}Warning: rules, header and always rows alone are over the $max character session start cap, so the output will be truncated. Shorten them."$'\n'
-  fi
-  for ((i = 0; i < n; i++)); do
-    [ "${r_keep[i]}" = 1 ] && body="$body${r_text[i]}"$'\n'
-  done
-  out="$out$body$warn"
-  [ -n "$always" ] && out="$out"$'\n'"$always"
-  printf '%s' "$out"
+  # Rows go out always first, then auto, then ask.
+  # Always rows are never cut; an auto or ask row that would pass the cap is left out and counted.
+  scoped_rows "$dir/index.md" | awk -v budget=$((max - ${#out} - 150)) -v more="$here/scoped-index.sh" '
+    { split($2, f, "/"); r = (f[2] == "always") ? 0 : (f[2] == "ask") ? 2 : 1; row[r, ++n[r]] = $0 }
+    END {
+      for (r = 0; r < 3; r++) for (i = 1; i <= n[r]; i++) {
+        if (r > 0 && used + length(row[r, i]) + 1 > budget) { cut++; continue }
+        used += length(row[r, i]) + 1
+        print row[r, i]
+      }
+      if (cut) printf "\n%d more rows did not fit. Run %s to list every row in scope.\n", cut, more
+    }'
 }
 
 main || true

@@ -24,18 +24,9 @@ In a Homelab Notes setup, a "Personal" page appears in `~/notes/personal` and no
 The one exception is the option `scopes.always_shows_everywhere`, which is off by default and shows private rows whose load flag is `always` in every folder.
 Leave it off unless you need it, because one wrong load value would expose a private page everywhere.
 
-At session start the hook prints, in order:
-
-1. Your rules.
-2. Your private rules, when the folder is in scope.
-3. The index header, with the date it was built and its age in days.
-4. The index rows that are in scope.
-5. A list of `always` pages for Claude to fetch before its first answer.
-
-The age is there so a stale index is never silent.
-After 7 days the header suggests running `/notion-refresh`.
-Output is capped at 9500 characters, set by `NOTION_HUB_MAX_CHARS`.
-If rows are cut, a visible warning says how many and suggests shortening summaries or moving pages to the ask load value.
+At session start the hook prints your rules, then the in-scope rows, `always` rows first.
+The header carries the build date, so Claude can suggest `/notion-refresh` when the index is over a week old.
+Output stays under 9500 characters (`NOTION_HUB_MAX_CHARS`): `ask` rows, then `auto` rows, are left out past that, and a line says how many.
 
 Saving goes the other way.
 `/notion-save` turns what a session learned into hub pages, checking each row's edit flag first.
@@ -73,8 +64,7 @@ None of them are in this repo.
 - `rules.private.md`: optional rules that would reveal private material, shown only in private folders.
 - `index.md`: the cached index, written by `/notion-refresh`.
   A new index applies from the next session, because the hook runs at session start.
-- `rows.json`: transient, written by `/notion-refresh` before it builds the index and deleted right after.
-  It holds every row, including private ones, so if a refresh is interrupted and leaves it behind, delete it.
+- `rows.json`: transient, written and deleted by `/notion-refresh`.
 
 ## Changing things later
 
