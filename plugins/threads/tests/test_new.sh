@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+# Literal ~ in fixtures is intentional: paths are stored unexpanded.
+# shellcheck disable=SC2088
 here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=assert.sh
 . "$here/assert.sh"
@@ -6,17 +8,14 @@ here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 . "$ROOT/scripts/lib.sh"
 setup
 
-P="$THREADS_DIR/projects"
+P="$THREADS_DIR"
 
 # Project create.
-# The literal ~ is intentional: paths are stored unexpanded.
-# shellcheck disable=SC2088
 out="$(bash "$NEW" project homelab $'Rebuild the | home\nserver' '~/code/homelab' '~/notes/homelab')"
 assert_eq "$P/homelab/state.md" "$out" "project create prints state.md path"
 assert_eq "homelab" "$(front "$P/homelab/state.md" name)" "project name"
 assert_eq "Rebuild the / home server" "$(front "$P/homelab/state.md" summary)" "project summary goes through one_line"
 assert_eq "active" "$(front "$P/homelab/state.md" status)" "project status active"
-# shellcheck disable=SC2088
 assert_eq "$(printf '~/code/homelab\n~/notes/homelab')" "$(front_list "$P/homelab/state.md" paths)" "project paths stored unexpanded"
 assert_eq "yes" "$([ -d "$P/homelab/units" ] && echo yes)" "project has units folder"
 
@@ -58,11 +57,18 @@ assert_exit 2 "project empty summary exits 2" -- bash "$NEW" project fresh "  "
 assert_exit 2 "unit missing summary exits 2" -- bash "$NEW" unit homelab fresh
 assert_exit 2 "unknown subcommand exits 2" -- bash "$NEW" thing a b
 assert_exit 2 "no arguments exits 2" -- bash "$NEW"
+assert_exit 2 "newline path exits 2" -- bash "$NEW" project fresh s $'x\nstatus: archived'
+assert_exit 2 "whitespace-only path exits 2" -- bash "$NEW" project fresh s "   "
+assert_exit 2 "second path with newline exits 2" -- bash "$NEW" project fresh s '~/ok' $'a\rb'
 assert_eq "$before" "$(snap)" "non-zero exits write nothing"
 assert_eq "no" "$([ -e "$THREADS_DIR/evil" ] && echo yes || echo no)" "no escape via .."
+
+# Surrounding whitespace in a path is trimmed.
+bash "$NEW" project trimmed s "  ~/code/trimmed  " >/dev/null
+assert_eq "~/code/trimmed" "$(front_list "$P/trimmed/state.md" paths)" "path whitespace trimmed"
 
 # A fresh root is created on first project.
 rm -rf "$THREADS_DIR"
 bash "$NEW" project first "First" >/dev/null
-assert_eq "first" "$(front "$THREADS_DIR/projects/first/state.md" name)" "first project creates the root"
+assert_eq "first" "$(front "$THREADS_DIR/first/state.md" name)" "first project creates the root"
 finish

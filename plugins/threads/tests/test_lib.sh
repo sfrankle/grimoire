@@ -45,8 +45,8 @@ assert_eq "" "$(front_list "$T/p/plain.md" paths)" "front_list without frontmatt
 
 proj() { # name status paths...
   local n="$1" s="$2"; shift 2
-  mkdir -p "$THREADS_DIR/projects/$n"
-  { printf -- '---\nsummary: s\nstatus: %s\npaths:\n' "$s"; for p in "$@"; do printf '  - %s\n' "$p"; done; printf -- '---\n'; } > "$THREADS_DIR/projects/$n/state.md"
+  mkdir -p "$THREADS_DIR/$n"
+  { printf -- '---\nsummary: s\nstatus: %s\npaths:\n' "$s"; for p in "$@"; do printf '  - %s\n' "$p"; done; printf -- '---\n'; } > "$THREADS_DIR/$n/state.md"
 }
 proj code active '~/code'
 proj homelab active '~/code/homelab/'

@@ -2,7 +2,7 @@
 # Shared helpers for the threads scripts.
 # Source this file; it sets no options and prints nothing on success.
 
-# The root folder holding projects/ and rules.md.
+# The root folder holding config.json, rules.md and one folder per project.
 threads_dir() {
   printf '%s\n' "${THREADS_DIR:-$HOME/.claude/threads}"
 }
@@ -77,7 +77,7 @@ front_list() {
 # Usage: match_project <dir>
 match_project() {
   local dir="${1%/}" root state name status p best="" best_len=0
-  root="$(threads_dir)/projects"
+  root="$(threads_dir)"
   for state in "$root"/*/state.md; do
     [ -f "$state" ] || continue
     name="$(basename "$(dirname "$state")")"

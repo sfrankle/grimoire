@@ -35,13 +35,20 @@ create_project() {
   summary="$(one_line "$2")"
   shift 2
   [ -n "$summary" ] || usage
+  # Paths go into frontmatter: trim them, and refuse empty or multi-line ones.
+  local clean=()
   for path in "$@"; do
+    case "$path" in *$'\n'* | *$'\r'*) echo "path must be one line" >&2; exit 2 ;; esac
+    path="${path#"${path%%[![:space:]]*}"}"
+    path="${path%"${path##*[![:space:]]}"}"
     [ -n "$path" ] || usage
+    clean+=("$path")
   done
-  dir="$(threads_dir)/projects/$name"
+  set -- ${clean[@]+"${clean[@]}"}
+  dir="$(threads_dir)/$name"
   [ ! -e "$dir" ] || { echo "already exists: $dir" >&2; exit 4; }
 
-  mkdir -p "$(threads_dir)/projects" || exit 1
+  mkdir -p "$(threads_dir)" || exit 1
   make_new_dir "$dir"
   mkdir "$dir/units" || exit 1
   {
@@ -62,7 +69,7 @@ create_unit() {
   valid_name "$name" || { echo "invalid name: $name" >&2; exit 2; }
   summary="$(one_line "$3")"
   [ -n "$summary" ] || usage
-  pdir="$(threads_dir)/projects/$project"
+  pdir="$(threads_dir)/$project"
   [ -d "$pdir" ] || { echo "no such project: $project" >&2; exit 3; }
   dir="$pdir/units/$name"
   [ ! -e "$dir" ] || { echo "already exists: $dir" >&2; exit 4; }
