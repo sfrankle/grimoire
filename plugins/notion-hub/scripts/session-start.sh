@@ -32,35 +32,11 @@ main() {
     return 0
   fi
 
-  # One jq call: first line is the always-shows-everywhere flag, then one private path per line.
-  local settings
-  settings="$(jq -r '
-    if type == "object" then
-      ((.scopes.always_shows_everywhere == true) | tostring),
-      ((.scopes.private_paths // []) | if type == "array" then .[] | strings else empty end)
-    else error("not an object") end' "$config")" || {
+  scope_setup "$config" || {
     echo "Notion hub config is not valid JSON. Run /notion-setup to fix it."
     return 0
   }
-
-  local everywhere=0 first=1 p project in_scope=0 line
-  project="${CLAUDE_PROJECT_DIR:-$PWD}"
-  project="${project%/}"
-  while IFS= read -r line; do
-    if [ "$first" = 1 ]; then
-      first=0
-      [ "$line" = "true" ] && everywhere=1
-      continue
-    fi
-    p="$(expand_tilde "$line")"
-    p="${p%/}"
-    [ -n "$p" ] || continue
-    case "$project" in
-      "$p" | "$p"/*) in_scope=1 ;;
-    esac
-  done <<EOF_SETTINGS
-$settings
-EOF_SETTINGS
+  local in_scope="$SCOPE_IN" line
 
   local out=""
   if [ -f "$rules" ]; then out="$(cat "$rules")"$'\n\n'; fi
@@ -78,7 +54,7 @@ EOF_SETTINGS
   if [ -n "$epoch" ]; then
     now="$(date +%s)"
     age=$(( (now - epoch) / 86400 ))
-    age_note="Index is $age days old."
+    if [ "$age" = 1 ]; then age_note="Index is 1 day old."; else age_note="Index is $age days old."; fi
     if [ "$age" -gt "$STALE_DAYS" ]; then
       age_note="$age_note Run /notion-refresh to update it."
     fi
@@ -87,13 +63,8 @@ EOF_SETTINGS
   [ -n "$age_note" ] && out="$out$age_note"$'\n'
   out="$out"$'\n'
 
-  # Keep rows in scope: shared rows, private rows in a private folder, and always rows if opted in.
   local rows
-  rows="$(awk -v scope="$in_scope" -v every="$everywhere" '
-    /^- / {
-      split($2, f, "/")
-      if (f[1] != "private" || scope == 1 || (every == 1 && f[2] == "always")) print
-    }' "$index")"
+  rows="$(scoped_rows "$index")"
 
   local max="${NOTION_HUB_MAX_CHARS:-$DEFAULT_MAX_CHARS}"
   case "$max" in '' | *[!0-9]*) max="$DEFAULT_MAX_CHARS" ;; esac
@@ -127,27 +98,35 @@ EOF_ROWS
   done
   [ -n "$always" ] && always="Fetch before your first answer:"$'\n'"$always"
 
-  # Assemble; cut ask rows then auto rows, each from the end, until the output fits.
-  local cut=0 body warn total
-  local -a order=()
+  # Cut ask rows then auto rows, each from the end, until the output fits.
+  # Row lengths are summed once, so the cost is linear in the number of rows.
+  local cut=0 warn="" sum=0 fixed next=0 body=""
+  local -a len=() order=()
+  for ((i = 0; i < n; i++)); do
+    len[i]=$(( ${#r_text[i]} + 1 ))
+    sum=$((sum + len[i]))
+  done
   for ((i = n - 1; i >= 0; i--)); do [ "${r_load[i]}" = "ask" ] && order[${#order[@]}]=$i; done
   for ((i = n - 1; i >= 0; i--)); do [ "${r_load[i]}" = "auto" ] && order[${#order[@]}]=$i; done
-  local next=0
-  while :; do
-    body=""
-    for ((i = 0; i < n; i++)); do
-      [ "${r_keep[i]}" = 1 ] && body="$body${r_text[i]}"$'\n'
-    done
-    warn=""
-    [ "$cut" -gt 0 ] && warn="Warning: $cut index rows cut to fit session start. Run /notion-refresh or trim the hub."$'\n'
-    total="$out$body$warn"
-    [ -n "$always" ] && total="$total"$'\n'"$always"
-    if [ "${#total}" -le "$max" ] || [ "$next" -ge "${#order[@]}" ]; then break; fi
-    r_keep[${order[next]}]=0
+  fixed=${#out}
+  [ -n "$always" ] && fixed=$((fixed + 1 + ${#always}))
+  while [ $((fixed + sum + ${#warn})) -gt "$max" ] && [ "$next" -lt "${#order[@]}" ]; do
+    i=${order[next]}
+    r_keep[i]=0
+    sum=$((sum - len[i]))
     next=$((next + 1))
     cut=$((cut + 1))
+    warn="Warning: $cut index rows cut to fit session start. Shorten summaries or move pages to the ask load value."$'\n'
   done
-  printf '%s' "$total"
+  if [ "$cut" = 0 ] && [ $((fixed + sum)) -gt "$max" ]; then
+    warn="Warning: rules and always rows alone are over the $max character session start cap. Shorten them."$'\n'
+  fi
+  for ((i = 0; i < n; i++)); do
+    [ "${r_keep[i]}" = 1 ] && body="$body${r_text[i]}"$'\n'
+  done
+  out="$out$body$warn"
+  [ -n "$always" ] && out="$out"$'\n'"$always"
+  printf '%s' "$out"
 }
 
 main || true

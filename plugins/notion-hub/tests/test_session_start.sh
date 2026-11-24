@@ -87,8 +87,8 @@ test_shared_folder() {
   assert_contains "$out" "| Studio rates |" "shared: Studio rates shown"
   assert_contains "$out" "| Tax notes |" "shared: Tax notes shown"
   assert_contains "$out" "| glaze recipes |" "shared: glaze shown"
-  assert_not_contains "$out" "| How I work |" "shared: private always row hidden"
-  assert_not_contains "$out" "| Visa letters |" "shared: private ask row hidden"
+  assert_not_contains "$out" "| Working style |" "shared: private always row hidden"
+  assert_not_contains "$out" "| Medical notes |" "shared: private ask row hidden"
   assert_not_contains "$out" "PRIVATE-RULES-MARKER" "shared: rules.private.md not printed"
   assert_not_contains "$out" "Fetch before your first answer" "shared: no always list when nothing is always"
 }
@@ -101,14 +101,14 @@ test_private_folder() {
   assert_eq "6" "$n" "private: all six rows"
   assert_contains "$out" "PRIVATE-RULES-MARKER" "private: rules.private.md printed"
   out="$(run_hook "$HOME/notes/personal")"
-  assert_contains "$out" "| Visa letters |" "private: exact private path is in scope"
+  assert_contains "$out" "| Medical notes |" "private: exact private path is in scope"
 }
 
 test_prefix_not_match() {
   setup; build
   printf 'PRIVATE-RULES-MARKER\n' > "$NOTION_HUB_DIR/rules.private.md"
   local out; out="$(run_hook "$HOME/notes/personal-old")"
-  assert_not_contains "$out" "| Visa letters |" "prefix: personal-old does not unlock private rows"
+  assert_not_contains "$out" "| Medical notes |" "prefix: personal-old does not unlock private rows"
   assert_not_contains "$out" "PRIVATE-RULES-MARKER" "prefix: personal-old does not print private rules"
 }
 
@@ -129,7 +129,7 @@ test_always_list() {
   setup; build
   local out; out="$(run_hook "$HOME/notes/personal")"
   local tail="${out#*Fetch before your first answer}"
-  assert_contains "$tail" "How I work" "always list: names How I work"
+  assert_contains "$tail" "Working style" "always list: names Working style"
   assert_contains "$tail" "https://www.notion.so/aaa2" "always list: gives its URL"
   assert_not_contains "$tail" "Kiln firing log" "always list: only always rows"
 }
@@ -138,9 +138,9 @@ test_always_opt_in() {
   setup; build
   jq '.scopes.always_shows_everywhere = true' "$NOTION_HUB_DIR/config.json" > "$T/c" && mv "$T/c" "$NOTION_HUB_DIR/config.json"
   local out; out="$(run_hook "$HOME/code/app")"
-  assert_contains "$out" "- private/always/ro | How I work |" "opt-in: always row shown in shared folder"
+  assert_contains "$out" "- private/always/ro | Working style |" "opt-in: always row shown in shared folder"
   assert_contains "${out#*Fetch before your first answer}" "https://www.notion.so/aaa2" "opt-in: always list entry shown"
-  assert_not_contains "$out" "| Visa letters |" "opt-in: private ask row still hidden"
+  assert_not_contains "$out" "| Medical notes |" "opt-in: private ask row still hidden"
 }
 
 # Rewrite the epoch in index.md to N days ago.
@@ -171,9 +171,9 @@ test_cap() {
   local out; out="$(NOTION_HUB_MAX_CHARS=$max run_hook "$HOME/notes/personal")"
   [ "${#out}" -le "$max" ] && pass "cap: output within $max chars (${#out})" || fail "cap: output within $max chars (${#out})"
   assert_contains "$out" "rows cut" "cap: warns about cut rows"
-  assert_contains "$out" "| How I work |" "cap: always row kept"
+  assert_contains "$out" "| Working style |" "cap: always row kept"
   case "$out" in
-    *"| Visa letters |"*) fail "cap: ask row cut first" ;;
+    *"| Medical notes |"*) fail "cap: ask row cut first" ;;
     *) pass "cap: ask row cut first" ;;
   esac
   # With a limit that fits the ask row but not everything, autos go only after asks.
@@ -181,12 +181,73 @@ test_cap() {
   assert_not_contains "$full" "rows cut" "cap: no warning when everything fits"
   local m2=$(( ${#full} - 5 ))
   out="$(NOTION_HUB_MAX_CHARS=$m2 run_hook "$HOME/notes/personal")"
-  assert_not_contains "$out" "| Visa letters |" "cap: slightly over cuts the ask row"
+  assert_not_contains "$out" "| Medical notes |" "cap: slightly over cuts the ask row"
   assert_contains "$out" "| Kiln firing log |" "cap: slightly over keeps auto rows"
   assert_contains "$out" "| Studio rates |" "cap: slightly over keeps all auto rows"
+}
+
+test_one_day_old() {
+  setup; build; age_index 1
+  local out; out="$(run_hook "$HOME/code/app")"
+  assert_contains "$out" "Index is 1 day old." "age: 1 day is singular"
+  assert_not_contains "$out" "1 days" "age: no '1 days'"
+}
+
+test_string_private_paths() {
+  setup; build
+  jq '.scopes.private_paths = "~/notes/personal"' "$NOTION_HUB_DIR/config.json" > "$T/c" && mv "$T/c" "$NOTION_HUB_DIR/config.json"
+  local out; out="$(run_hook "$HOME/notes/personal")"
+  assert_contains "$out" "| Medical notes |" "string private_paths: private row shown in that folder"
+  out="$(run_hook "$HOME/code/app")"
+  assert_not_contains "$out" "| Medical notes |" "string private_paths: private row hidden elsewhere"
+}
+
+test_cap_cut_order() {
+  setup; build
+  printf 'Rules.\n' > "$NOTION_HUB_DIR/rules.md"
+  # The warning costs more than one row saves, so one character over cuts two rows.
+  local full out; full="$(run_hook "$HOME/notes/personal")"
+  out="$(NOTION_HUB_MAX_CHARS=$(( ${#full} - 1 )) run_hook "$HOME/notes/personal")"
+  assert_not_contains "$out" "| Medical notes |" "cut order: ask row goes first"
+  assert_not_contains "$out" "| Tax notes |" "cut order: last auto row goes after the ask rows"
+  assert_contains "$out" "| Studio rates |" "cut order: earlier autos stay"
+  assert_contains "$out" "| Kiln firing log |" "cut order: middle auto stays"
+  assert_contains "$out" "| glaze recipes |" "cut order: first auto stays"
+  assert_contains "$out" "| Working style |" "cut order: always row stays"
+  assert_contains "$out" "2 index rows cut" "cut order: warning counts both cuts"
+}
+
+test_cap_warning_text() {
+  setup; build
+  local out; out="$(NOTION_HUB_MAX_CHARS=800 run_hook "$HOME/notes/personal")"
+  assert_contains "$out" "Shorten summaries" "cap warning: says to shorten summaries"
+  assert_not_contains "$out" "trim the hub" "cap warning: no old advice"
+}
+
+test_cap_never_cut_over() {
+  setup
+  printf '[{"url":"https://www.notion.so/zzz1","properties":{"Name":"Only always","Summary":"Always loaded","Load":"Always","Area":"Studio"}}]' > "$T/one.json"
+  bash "$BUILD" "$T/one.json" >/dev/null
+  local out; out="$(NOTION_HUB_MAX_CHARS=10 run_hook "$HOME/code/app")"
+  assert_contains "$out" "Warning" "never-cut over cap: still warns"
+  assert_contains "$out" "| Only always |" "never-cut over cap: always row kept"
+}
+
+test_many_rows() {
+  setup
+  jq -n '[range(0; 600) | {url: "https://www.notion.so/r\(.)", properties: {Name: "Page number \(.)", Summary: "A summary line long enough to matter for the cap", Load: (if . % 50 == 0 then "Always" elif . % 7 == 0 then "Only when asked" else null end), Area: "Studio"}}]' > "$T/many.json"
+  bash "$BUILD" "$T/many.json" >/dev/null
+  local start=$SECONDS out
+  out="$(run_hook "$HOME/code/app")"
+  [ $(( SECONDS - start )) -le 5 ] && pass "many rows: 600 rows finish quickly" || fail "many rows: 600 rows finish quickly"
+  [ "${#out}" -le 9500 ] && pass "many rows: output within the cap" || fail "many rows: output within the cap (${#out})"
+  assert_contains "$out" "rows cut" "many rows: warns about cut rows"
+  assert_contains "$out" "Page number 0" "many rows: always row kept"
 }
 
 test_no_config; test_bad_config; test_no_jq; test_no_index
 test_shared_folder; test_private_folder; test_prefix_not_match
 test_order; test_always_list; test_always_opt_in; test_age_nudge; test_cap
+test_one_day_old; test_string_private_paths; test_cap_cut_order
+test_cap_warning_text; test_cap_never_cut_over; test_many_rows
 finish
