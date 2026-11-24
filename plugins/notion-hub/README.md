@@ -20,7 +20,9 @@ Each row carries three flags, which you map from your own columns:
 - **edit**: `ro` (read only, Claude proposes changes in chat), `edit` (smallest edit to the right section) or `own` (Claude's page to keep current).
 
 Private rows show only when the session folder is under one of your private paths.
-In a Field Notes setup, a "Personal" page appears in `~/notes/personal` and nowhere else.
+In a Field Notes setup, a "Personal" page appears in `~/notes/personal` and nowhere else by default.
+The one exception is the option `scopes.always_shows_everywhere`, which is off by default and shows private rows whose load flag is `always` in every folder.
+Leave it off unless you need it, because one wrong load value would expose a private page everywhere.
 
 At session start the hook prints, in order:
 
