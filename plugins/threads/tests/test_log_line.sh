@@ -62,6 +62,21 @@ mkdir "$P/homelab/units/stateless"
 assert_exit 3 "unit folder without state.md exits 3" -- bash "$LOG" homelab stateless s1 "x"
 assert_eq "no" "$([ -e "$P/homelab/units/stateless/log.md" ] && echo yes || echo no)" "no log for stateless unit"
 
+# Backslashes pass through awk literally, in text and in ids.
+bash "$NEW" unit homelab lit "Literal" >/dev/null
+L="$P/homelab/units/lit/log.md"
+bash "$LOG" homelab lit s1 'dir C:\new\table'
+assert_eq '- 2026-11-24 | s1 | dir C:\new\table' "$(cat "$L")" "backslashes in text stay literal on one line"
+bash "$LOG" homelab lit 'x\y' "first"
+bash "$LOG" homelab lit 'x\y' "second"
+assert_eq '- 2026-11-24 | x\y | second' "$(tail -n +2 "$L")" "backslash id matches its earlier line"
+assert_eq "2" "$(wc -l < "$L" | tr -d ' ')" "backslash id leaves one line per id"
+
+# Numeric-looking ids compare as strings.
+bash "$LOG" homelab lit 1 "one"
+bash "$LOG" homelab lit 1.0 "one point zero"
+assert_eq "2" "$(grep -c -e '| 1 |' -e '| 1.0 |' "$L")" "ids 1 and 1.0 stay separate lines"
+
 # Date defaults to today.
 unset THREADS_TODAY
 bash "$LOG" homelab other today-id "x"

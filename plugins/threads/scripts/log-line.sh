@@ -37,13 +37,14 @@ tmp="$(mktemp "$udir/.log.XXXXXX")" || exit 1
 trap 'rm -f "$tmp"' EXIT
 
 # Rewrite the log with this session's line in place of its old one, or at the end.
-# The id is compared as a string against the second " | " field, never as a regex.
+# Values go in through the environment, since awk -v would interpret backslash escapes.
+# The id is compared as a string against the second " | " field, never as a regex or a number.
 [ -f "$log" ] || : > "$log" || exit 1
-awk -v id="$id" -v line="- $date_str | $id | $text" '
-  BEGIN { done = 0 }
+ID="$id" LINE="- $date_str | $id | $text" awk '
+  BEGIN { done = 0; id = ENVIRON["ID"]; line = ENVIRON["LINE"] }
   {
     n = split($0, f, " \\| ")
-    if (id != "-" && n >= 3 && substr($0, 1, 2) == "- " && f[2] == id) {
+    if (id != "-" && n >= 3 && substr($0, 1, 2) == "- " && (f[2] "") == (id "")) {
       if (!done) { print line; done = 1 }
       next
     }
