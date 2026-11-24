@@ -153,9 +153,14 @@ test_age_nudge() {
   setup; build; age_index 9
   local out; out="$(run_hook "$HOME/code/app")"
   assert_contains "$out" "9 days old" "age: 9 days named"
-  assert_contains "$out" "/notion-refresh" "age: old index nudges /notion-refresh"
+  assert_contains "$out" "/notion-refresh" "age: 9 day old index nudges /notion-refresh"
+  build; age_index 7
+  out="$(run_hook "$HOME/code/app")"
+  assert_contains "$out" "7 days old" "age: 7 days named"
+  assert_not_contains "$out" "/notion-refresh" "age: exactly 7 days has no nudge"
   build; age_index 2
   out="$(run_hook "$HOME/code/app")"
+  assert_contains "$out" "2 days old" "age: 2 days named"
   assert_not_contains "$out" "/notion-refresh" "age: 2 day old index has no nudge"
 }
 

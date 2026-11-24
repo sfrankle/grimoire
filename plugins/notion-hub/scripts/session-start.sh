@@ -78,8 +78,9 @@ EOF_SETTINGS
   if [ -n "$epoch" ]; then
     now="$(date +%s)"
     age=$(( (now - epoch) / 86400 ))
-    if [ "$age" -ge "$STALE_DAYS" ]; then
-      age_note="Index is $age days old. Run /notion-refresh to update it."
+    age_note="Index is $age days old."
+    if [ "$age" -gt "$STALE_DAYS" ]; then
+      age_note="$age_note Run /notion-refresh to update it."
     fi
   fi
   out="$out$header"$'\n'
