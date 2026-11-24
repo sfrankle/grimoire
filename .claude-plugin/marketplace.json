@@ -20,6 +20,11 @@
       "name": "terminal",
       "source": "./plugins/terminal",
       "description": "One-line conventional commits with the harness's co-author trailer."
+    },
+    {
+      "name": "notion-hub",
+      "source": "./plugins/notion-hub",
+      "description": "Use a Notion database as your agent's long-term memory index."
     }
   ]
 }

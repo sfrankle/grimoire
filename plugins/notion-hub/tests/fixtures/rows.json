@@ -1,0 +1,8 @@
+[
+  {"url": "https://www.notion.so/aaa1", "properties": {"Name": "Kiln firing log", "Summary": "Cone 6 schedule and failures", "Tags": ["kiln", "glaze"], "Type": "Log", "Area": "Studio", "Load": "When relevant", "Agent access": "Agent owned"}},
+  {"url": "https://www.notion.so/aaa2", "properties": {"Name": "How I work", "Summary": "Working preferences for agents", "Area": "Personal", "Load": "Always", "Agent access": "Read only"}},
+  {"url": "https://www.notion.so/aaa3", "properties": {"Name": "Studio rates", "Summary": "Hourly and class pricing", "Area": "Studio", "Agent access": "Small edits"}},
+  {"url": "https://www.notion.so/aaa4", "properties": {"Name": "Tax notes", "Summary": "Quarterly tax reminders", "Area": ["Personal", "Studio"]}},
+  {"url": "https://www.notion.so/aaa5", "properties": {"Name": "Visa letters", "Summary": "Letter templates", "Area": "Personal", "Load": "Only when asked"}},
+  {"url": "https://www.notion.so/aaa6", "properties": {"Name": "glaze recipes", "Summary": "Cone 6 | satin\nmatte"}}
+]
