@@ -146,7 +146,8 @@ main() {
     function trim(budget,    k, kind, stop, used, i) {
       split("", cut); cuts["P"] = cuts["U"] = 0
       for (k = 1; k <= 2; k++) {
-        kind = (k == 1) ? "P" : "U"; stop = 0
+        # Units are cut before projects, so once any project line is cut every unit line goes too.
+        kind = (k == 1) ? "P" : "U"; stop = (kind == "U" && cuts["P"] > 0)
         for (i = 1; i <= n; i++) {
           if (tag[i] != kind) continue
           if (!stop && used + length(txt[i]) + 1 <= budget) used += length(txt[i]) + 1

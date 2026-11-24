@@ -207,7 +207,22 @@ test_cap() {
   assert_contains "$(last_line "$out")" "$THREADS_DIR" "cap: tiny cap note names the root"
 }
 
+# A long project line that misses must not let a short unit line take the leftover budget.
+test_cap_units_before_projects() {
+  setup
+  cp "$ROOT/examples/config.json" "$THREADS_DIR/"
+  printf 'Rule: keep notes short.\n' > "$THREADS_DIR/rules.md"
+  bash "$NEW" project aaa "First" '~/code/aaa' >/dev/null
+  bash "$NEW" project bbb "$(printf '%400s' '' | tr ' ' 'b')" >/dev/null
+  bash "$NEW" project ccc "Third" >/dev/null
+  bash "$NEW" unit aaa u1 "s" >/dev/null
+  local out; out="$(THREADS_MAX_CHARS=600 run_hook "$HOME/code/aaa")"
+  assert_contains "$out" "- aaa | First" "cap order: project line that fits is kept"
+  assert_not_contains "$out" "- u1 |" "cap order: no unit line while project lines are cut"
+  assert_contains "$(last_line "$out")" "2 more projects and 1 more units did not fit" "cap order: note counts both"
+}
+
 test_no_config; test_bad_config; test_no_jq; test_no_projects
 test_project_list; test_likely_project; test_session_id; test_notion_line
-test_skips_broken; test_body_cap; test_cap
+test_skips_broken; test_body_cap; test_cap; test_cap_units_before_projects
 finish
