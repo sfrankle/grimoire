@@ -17,7 +17,7 @@ jobs:
     name: Validate plugins
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: actions/setup-node@v4
         with:
           node-version: 22
@@ -34,7 +34,7 @@ jobs:
     name: ShellCheck
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Run shellcheck
         run: git ls-files -z '*.sh' | xargs -0 -r shellcheck
 
@@ -42,7 +42,7 @@ jobs:
     name: Plugin tests
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Run each plugin's tests/run.sh
         run: |
           shopt -s nullglob
@@ -57,7 +57,7 @@ jobs:
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
       - run: scripts/ci/check-version-bump.sh "origin/${{ github.base_ref }}"
@@ -66,7 +66,7 @@ jobs:
     name: Privacy
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - run: scripts/ci/check-privacy.sh
         env:
           PRIVACY_DENYLIST: ${{ secrets.PRIVACY_DENYLIST }}
@@ -75,7 +75,7 @@ jobs:
     name: actionlint
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Install actionlint
         run: bash <(curl -fsSL https://raw.githubusercontent.com/rhysd/actionlint/v1.7.7/scripts/download-actionlint.bash) 1.7.7
       - run: ./actionlint -color
