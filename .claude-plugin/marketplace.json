@@ -1,0 +1,25 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "grimoire",
+  "description": "Agent skills and plugins by sfrankle",
+  "owner": {
+    "name": "sfrankle"
+  },
+  "plugins": [
+    {
+      "name": "articulate",
+      "source": "./plugins/articulate",
+      "description": "Plain-language rewriting: restate the last message simply, cut AI tells from writing."
+    },
+    {
+      "name": "productivity",
+      "source": "./plugins/productivity",
+      "description": "Hand a conversation off to a fresh agent session."
+    },
+    {
+      "name": "terminal",
+      "source": "./plugins/terminal",
+      "description": "One-line conventional commits with the harness's co-author trailer."
+    }
+  ]
+}
