@@ -1,0 +1,8 @@
+{
+  "name": "productivity",
+  "version": "0.1.0",
+  "description": "Hand a conversation off to a fresh agent session.",
+  "author": { "name": "sfrankle" },
+  "repository": "https://github.com/sfrankle/grimoire",
+  "license": "MIT"
+}

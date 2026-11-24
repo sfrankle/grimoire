@@ -1,0 +1,8 @@
+{
+  "name": "terminal",
+  "version": "0.1.0",
+  "description": "One-line conventional commits with the harness's co-author trailer.",
+  "author": { "name": "sfrankle" },
+  "repository": "https://github.com/sfrankle/grimoire",
+  "license": "MIT"
+}

@@ -1,0 +1,8 @@
+{
+  "name": "articulate",
+  "version": "0.1.0",
+  "description": "Plain-language rewriting: restate the last message simply, cut AI tells from writing.",
+  "author": { "name": "sfrankle" },
+  "repository": "https://github.com/sfrankle/grimoire",
+  "license": "MIT"
+}
