@@ -1,6 +1,7 @@
 ---
 name: unslop
-description: Use when writing or editing prose a person will read, such as docs, READMEs, PR descriptions, messages and posts, to cut AI tells and write plainly.
+description: Cut AI tells from writing a person will read, such as docs, READMEs, PR descriptions and messages.
+disable-model-invocation: true
 ---
 
 # Unslop
