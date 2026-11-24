@@ -5,6 +5,7 @@
 # Skills read the index through this script so private rows never reach a shared folder.
 
 here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=lib.sh
 . "$here/lib.sh"
 
 fail() {

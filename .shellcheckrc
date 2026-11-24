@@ -1,0 +1,3 @@
+# Resolve "# shellcheck source=" paths relative to the script that sources them.
+source-path=SCRIPTDIR
+external-sources=true

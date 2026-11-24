@@ -4,6 +4,7 @@
 # On any error it prints one reason to stderr, exits 1 and leaves index.md as it was.
 
 here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=lib.sh
 . "$here/lib.sh"
 
 fail() {

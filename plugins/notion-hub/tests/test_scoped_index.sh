@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 root="$(dirname "$here")"
+# shellcheck source=assert.sh
 . "$here/assert.sh"
 
 BUILD="$root/scripts/build-index.sh"
@@ -19,6 +20,8 @@ setup() {
   cp "$root/examples/config.json" "$NOTION_HUB_DIR/config.json"
   bash "$BUILD" "$ROWS" >/dev/null
 }
+# Called from the EXIT trap below.
+# shellcheck disable=SC2329
 cleanup() { for d in $TMPS; do rm -rf "$d"; done; }
 trap cleanup EXIT
 

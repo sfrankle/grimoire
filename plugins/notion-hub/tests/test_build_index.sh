@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 root="$(dirname "$here")"
+# shellcheck source=assert.sh
 . "$here/assert.sh"
 
 BUILD="$root/scripts/build-index.sh"
@@ -14,6 +15,8 @@ setup() {
   DIRS="$DIRS $NOTION_HUB_DIR"
   cp "$root/examples/config.json" "$NOTION_HUB_DIR/config.json"
 }
+# Called from the EXIT trap below.
+# shellcheck disable=SC2329
 cleanup() { for d in $DIRS; do rm -rf "$d"; done; }
 trap cleanup EXIT
 
@@ -68,7 +71,7 @@ test_empty_keeps_old() {
   printf '[]' > "$NOTION_HUB_DIR/empty.json"
   assert_exit 1 "empty rows exits 1" -- bash "$BUILD" "$NOTION_HUB_DIR/empty.json"
   assert_eq "old index" "$(cat "$NOTION_HUB_DIR/index.md")" "empty rows keeps index.md"
-  assert_eq "" "$(ls -A "$NOTION_HUB_DIR" | grep '^\.index' )" "no temp file left behind"
+  assert_eq "" "$(find "$NOTION_HUB_DIR" -maxdepth 1 -name ".index*")" "no temp file left behind"
 }
 
 test_malformed_keeps_old() {

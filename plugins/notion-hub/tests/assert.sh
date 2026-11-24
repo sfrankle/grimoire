@@ -1,3 +1,4 @@
+# shellcheck shell=bash
 # Test helpers. Source this file, then call finish at the end of the test file.
 FAILS=0
 

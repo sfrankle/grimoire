@@ -13,6 +13,7 @@ STALE_DAYS=7
 exec 2>/dev/null
 
 here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=lib.sh
 . "$here/lib.sh"
 
 main() {

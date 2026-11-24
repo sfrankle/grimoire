@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 root="$(dirname "$here")"
+# shellcheck source=assert.sh
 . "$here/assert.sh"
 
 BUILD="$root/scripts/build-index.sh"
@@ -21,6 +22,8 @@ setup() {
   cp "$root/examples/rules.md" "$NOTION_HUB_DIR/rules.md"
   unset NOTION_HUB_MAX_CHARS
 }
+# Called from the EXIT trap below.
+# shellcheck disable=SC2329
 cleanup() { for d in $TMPS; do rm -rf "$d"; done; }
 trap cleanup EXIT
 
@@ -120,9 +123,9 @@ test_order() {
   built="$(pos "$out" "Built ")"
   row="$(pos "$out" "- shared/auto/own | NAS backup")"
   fetch="$(pos "$out" "Fetch before your first answer")"
-  [ "$rules" -ge 0 ] && [ "$rules" -lt "$built" ] && pass "order: rules before Built" || fail "order: rules before Built"
-  [ "$built" -lt "$row" ] && pass "order: Built before rows" || fail "order: Built before rows"
-  [ "$row" -lt "$fetch" ] && [ "$fetch" -ge 0 ] && pass "order: rows before always list" || fail "order: rows before always list"
+  if [ "$rules" -ge 0 ] && [ "$rules" -lt "$built" ]; then pass "order: rules before Built"; else fail "order: rules before Built"; fi
+  if [ "$built" -lt "$row" ]; then pass "order: Built before rows"; else fail "order: Built before rows"; fi
+  if [ "$row" -lt "$fetch" ] && [ "$fetch" -ge 0 ]; then pass "order: rows before always list"; else fail "order: rows before always list"; fi
 }
 
 test_always_list() {
@@ -169,7 +172,7 @@ test_cap() {
   printf 'Rules.\n' > "$NOTION_HUB_DIR/rules.md"
   local max="${CAP_TEST_MAX:-800}"
   local out; out="$(NOTION_HUB_MAX_CHARS=$max run_hook "$HOME/notes/personal")"
-  [ "${#out}" -le "$max" ] && pass "cap: output within $max chars (${#out})" || fail "cap: output within $max chars (${#out})"
+  if [ "${#out}" -le "$max" ]; then pass "cap: output within $max chars (${#out})"; else fail "cap: output within $max chars (${#out})"; fi
   assert_contains "$out" "rows cut" "cap: warns about cut rows"
   assert_contains "$out" "| Working style |" "cap: always row kept"
   case "$out" in
@@ -239,8 +242,8 @@ test_many_rows() {
   bash "$BUILD" "$T/many.json" >/dev/null
   local start=$SECONDS out
   out="$(run_hook "$HOME/code/app")"
-  [ $(( SECONDS - start )) -le 5 ] && pass "many rows: 600 rows finish quickly" || fail "many rows: 600 rows finish quickly"
-  [ "${#out}" -le 9500 ] && pass "many rows: output within the cap" || fail "many rows: output within the cap (${#out})"
+  if [ $(( SECONDS - start )) -le 5 ]; then pass "many rows: 600 rows finish quickly"; else fail "many rows: 600 rows finish quickly"; fi
+  if [ "${#out}" -le 9500 ]; then pass "many rows: output within the cap"; else fail "many rows: output within the cap (${#out})"; fi
   assert_contains "$out" "rows cut" "many rows: warns about cut rows"
   assert_contains "$out" "Page number 0" "many rows: always row kept"
 }

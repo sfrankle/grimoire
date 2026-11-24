@@ -1,3 +1,4 @@
+# shellcheck shell=bash
 # Shared helpers for the notion-hub scripts.
 # Source this file; it sets no options and prints nothing.
 
@@ -8,6 +9,8 @@ hub_dir() {
 
 # Replace a leading ~ or ~/ with $HOME.
 expand_tilde() {
+  # The quoted ~ is a literal match on purpose: config paths arrive unexpanded.
+  # shellcheck disable=SC2088
   case "$1" in
     "~") printf '%s\n' "$HOME" ;;
     "~/"*) printf '%s\n' "$HOME/${1#"~/"}" ;;
