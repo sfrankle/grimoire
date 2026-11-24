@@ -3,7 +3,7 @@
 Use one Notion database as Claude's long-term memory.
 Every session starts with an index of the database, Claude fetches only the pages a task needs, and new durable facts get saved back as pages.
 
-The examples below use an invented hub called "Field Notes", for a small pottery studio.
+The examples below use an invented hub called "Homelab Notes", for a home lab: a NAS, a small k3s cluster and the home network.
 
 ## How it works
 
@@ -20,7 +20,7 @@ Each row carries three flags, which you map from your own columns:
 - **edit**: `ro` (read only, Claude proposes changes in chat), `edit` (smallest edit to the right section) or `own` (Claude's page to keep current).
 
 Private rows show only when the session folder is under one of your private paths.
-In a Field Notes setup, a "Personal" page appears in `~/notes/personal` and nowhere else by default.
+In a Homelab Notes setup, a "Personal" page appears in `~/notes/personal` and nowhere else by default.
 The one exception is the option `scopes.always_shows_everywhere`, which is off by default and shows private rows whose load flag is `always` in every folder.
 Leave it off unless you need it, because one wrong load value would expose a private page everywhere.
 

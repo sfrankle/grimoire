@@ -42,7 +42,7 @@ Read their specifics from `config.json` and `rules.md`, which may add restrictio
    - `visibility`: one of the values you chose per page under guardrail 2.
    - `load`: a value in neither `values.load.always` nor `values.load.ask`, as existing `auto` rows carry, or leave it unset.
      Only set the always value after the user agrees.
-   - `summary`: one line of facts, such as "Kiln runs cone 6, 11 hours", not "Notes about the kiln".
+   - `summary`: one line of facts, such as "NAS backs up nightly at 02:00 to B2", not "Notes about backups".
    - `keywords`: reuse existing options and add a new one only when none fits.
    - `category`, `title`: the closest existing option, and a short specific name.
 6. Load the `notion-refresh` skill to rebuild the index.

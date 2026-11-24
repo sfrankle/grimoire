@@ -27,7 +27,7 @@ scoped() { CLAUDE_PROJECT_DIR="$1" bash "$SCOPED" 2>&1; }
 test_shared_folder() {
   setup
   local out; out="$(scoped "$HOME/code/app")"
-  assert_contains "$out" "| Kiln firing log |" "shared folder: shared row listed"
+  assert_contains "$out" "| NAS backup log |" "shared folder: shared row listed"
   assert_not_contains "$out" "Medical notes" "shared folder: private ask row hidden"
   assert_not_contains "$out" "Working style" "shared folder: private always row hidden"
   assert_not_contains "$out" "Built " "shared folder: rows only, no header"

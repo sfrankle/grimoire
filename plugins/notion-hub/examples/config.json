@@ -1,7 +1,7 @@
 {
   "version": 1,
   "hub": {
-    "name": "Field Notes",
+    "name": "Homelab Notes",
     "database_url": "https://www.notion.so/00000000000000000000000000000000",
     "data_source": "collection://00000000-0000-0000-0000-000000000000"
   },

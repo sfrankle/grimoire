@@ -22,35 +22,35 @@ row() { grep -F "| $1 |" "$NOTION_HUB_DIR/index.md"; }
 test_flags() {
   setup; bash "$BUILD" "$ROWS" >/dev/null
   assert_contains "$(row 'Working style')" "- private/always/ro | Working style |" "flags: private always ro"
-  assert_contains "$(row 'Tax notes')" "- shared/auto/ro | Tax notes |" "flags: mixed visibility is shared, no edit is ro"
+  assert_contains "$(row 'Power bills')" "- shared/auto/ro | Power bills |" "flags: mixed visibility is shared, no edit is ro"
   assert_contains "$(row 'Medical notes')" "- private/ask/ro | Medical notes |" "flags: private ask ro"
-  assert_contains "$(row 'Kiln firing log')" "- shared/auto/own | Kiln firing log |" "flags: shared auto own"
-  assert_contains "$(row 'Studio rates')" "- shared/auto/edit | Studio rates |" "flags: shared auto edit"
-  assert_contains "$(row 'Kiln firing log')" "| category: Log | keywords: kiln, glaze | https://www.notion.so/aaa1" "optional fields and url"
+  assert_contains "$(row 'NAS backup log')" "- shared/auto/own | NAS backup log |" "flags: shared auto own"
+  assert_contains "$(row 'Network layout')" "- shared/auto/edit | Network layout |" "flags: shared auto edit"
+  assert_contains "$(row 'NAS backup log')" "| category: Log | keywords: backup, restic | https://www.notion.so/aaa1" "optional fields and url"
 }
 
 test_sort() {
   setup; bash "$BUILD" "$ROWS" >/dev/null
   local order
   order="$(grep '^- ' "$NOTION_HUB_DIR/index.md" | awk -F' [|] ' '{print $2}' | paste -sd, -)"
-  assert_eq "glaze recipes,Kiln firing log,Medical notes,Studio rates,Tax notes,Working style" "$order" "rows sorted by title, case-insensitive"
+  assert_eq "dotfiles,Medical notes,NAS backup log,Network layout,Power bills,Working style" "$order" "rows sorted by title, case-insensitive"
 }
 
 test_escaping() {
   setup; bash "$BUILD" "$ROWS" >/dev/null
   local line seps
-  line="$(grep -F 'glaze recipes' "$NOTION_HUB_DIR/index.md")"
-  assert_contains "$line" "Cone 6 / satin matte" "pipe becomes slash, newline becomes space"
+  line="$(grep -F 'dotfiles' "$NOTION_HUB_DIR/index.md")"
+  assert_contains "$line" "zsh / tmux neovim" "pipe becomes slash, newline becomes space"
   seps="$(printf '%s' "$line" | grep -o ' | ' | wc -l | tr -d ' ')"
-  assert_eq "3" "$seps" "glaze row keeps exactly 4 fields"
-  assert_eq "1" "$(grep -c 'glaze recipes' "$NOTION_HUB_DIR/index.md")" "glaze row is one line"
+  assert_eq "3" "$seps" "dotfiles row keeps exactly 4 fields"
+  assert_eq "1" "$(grep -c 'dotfiles' "$NOTION_HUB_DIR/index.md")" "dotfiles row is one line"
 }
 
 test_header() {
   setup; local out
   out="$(bash "$BUILD" "$ROWS")"
   assert_eq "Indexed 6 pages." "$out" "prints the row count"
-  assert_contains "$(cat "$NOTION_HUB_DIR/index.md")" "# Notion hub index: Field Notes" "header title"
+  assert_contains "$(cat "$NOTION_HUB_DIR/index.md")" "# Notion hub index: Homelab Notes" "header title"
   if grep -Eq '^Built [0-9]{4}-[0-9]{2}-[0-9]{2} \(epoch [0-9]+\)' "$NOTION_HUB_DIR/index.md"; then
     pass "built line with date and epoch"; else fail "built line with date and epoch"; fi
 }
