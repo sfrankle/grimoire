@@ -16,7 +16,6 @@ Skills and plugins I use with coding agents.
 - **terminal**: `commit` writes a one-line Conventional Commit with the harness's co-author trailer.
 
 Coming next: **notion-hub**, which uses a Notion database as an agent's long-term memory index.
-The design is in [docs/superpowers/specs/2026-11-24-notion-hub-design.md](docs/superpowers/specs/2026-11-24-notion-hub-design.md).
 
 ## Other agents
 

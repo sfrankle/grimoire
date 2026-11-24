@@ -8,7 +8,7 @@ The Claude plugin files are the install route today; the skills themselves follo
 - `.claude-plugin/marketplace.json` lists every plugin. A new plugin is not installable until it has an entry here.
 - `plugins/<plugin>/.claude-plugin/plugin.json` is each plugin's manifest.
 - `plugins/<plugin>/skills/<skill>/SKILL.md` is a skill. Supporting files sit beside it and are linked by relative path.
-- `docs/superpowers/specs/` holds design specs; `docs/superpowers/plans/` holds implementation plans.
+- `docs/` holds local working notes (specs, plans, ideas) and is never committed.
 
 ## Writing skills
 
