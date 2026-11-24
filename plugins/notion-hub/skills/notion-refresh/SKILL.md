@@ -17,6 +17,7 @@ In Claude Code that is `${CLAUDE_PLUGIN_ROOT}/scripts/build-index.sh`.
    If it is missing, tell the user to run `notion-setup` and stop.
 2. Query the data source in `hub.data_source` through the Notion connector.
    Request the largest page the connector allows, and keep requesting pages (by cursor or offset, whichever it offers) until it reports no more rows.
+   If any page request fails, report it and stop without writing `rows.json`.
    Count the rows fetched.
 3. Write every row to `rows.json` in the hub folder as an array of `{"url": "<page url>", "properties": {"<property name>": <value>}}`.
    Use the property names exactly as the connector returns them.
