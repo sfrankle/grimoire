@@ -9,7 +9,7 @@ here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 setup
 
 assert_eq "$T/threads" "$(threads_dir)" "threads_dir honours THREADS_DIR"
-(unset THREADS_DIR; assert_eq "$HOME/.claude/threads" "$(threads_dir)" "threads_dir default")
+assert_eq "$HOME/.claude/threads" "$(unset THREADS_DIR; threads_dir)" "threads_dir default"
 assert_eq "$HOME/x" "$(expand_tilde '~/x')" "expand_tilde expands ~/"
 assert_eq "$HOME" "$(expand_tilde '~')" "expand_tilde expands ~"
 assert_eq "/a/b" "$(expand_tilde /a/b)" "expand_tilde leaves absolute paths"
