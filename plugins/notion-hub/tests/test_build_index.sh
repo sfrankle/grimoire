@@ -21,9 +21,9 @@ row() { grep -F "| $1 |" "$NOTION_HUB_DIR/index.md"; }
 
 test_flags() {
   setup; bash "$BUILD" "$ROWS" >/dev/null
-  assert_contains "$(row 'How I work')" "- private/always/ro | How I work |" "flags: private always ro"
+  assert_contains "$(row 'Working style')" "- private/always/ro | Working style |" "flags: private always ro"
   assert_contains "$(row 'Tax notes')" "- shared/auto/ro | Tax notes |" "flags: mixed visibility is shared, no edit is ro"
-  assert_contains "$(row 'Visa letters')" "- private/ask/ro | Visa letters |" "flags: private ask ro"
+  assert_contains "$(row 'Medical notes')" "- private/ask/ro | Medical notes |" "flags: private ask ro"
   assert_contains "$(row 'Kiln firing log')" "- shared/auto/own | Kiln firing log |" "flags: shared auto own"
   assert_contains "$(row 'Studio rates')" "- shared/auto/edit | Studio rates |" "flags: shared auto edit"
   assert_contains "$(row 'Kiln firing log')" "| category: Log | keywords: kiln, glaze | https://www.notion.so/aaa1" "optional fields and url"
@@ -33,7 +33,7 @@ test_sort() {
   setup; bash "$BUILD" "$ROWS" >/dev/null
   local order
   order="$(grep '^- ' "$NOTION_HUB_DIR/index.md" | awk -F' [|] ' '{print $2}' | paste -sd, -)"
-  assert_eq "glaze recipes,How I work,Kiln firing log,Studio rates,Tax notes,Visa letters" "$order" "rows sorted by title, case-insensitive"
+  assert_eq "glaze recipes,Kiln firing log,Medical notes,Studio rates,Tax notes,Working style" "$order" "rows sorted by title, case-insensitive"
 }
 
 test_escaping() {
@@ -86,6 +86,30 @@ test_no_config() {
   assert_contains "$err" "/notion-setup" "no config mentions /notion-setup"
 }
 
+test_missing_column() {
+  local k
+  for k in title summary visibility; do
+    setup; printf 'old index\n' > "$NOTION_HUB_DIR/index.md"
+    jq --arg k "$k" '.fields[$k] = "Renamed column"' "$NOTION_HUB_DIR/config.json" > "$NOTION_HUB_DIR/c.tmp" && mv "$NOTION_HUB_DIR/c.tmp" "$NOTION_HUB_DIR/config.json"
+    local err; err="$(bash "$BUILD" "$ROWS" 2>&1 >/dev/null)"
+    assert_exit 1 "missing $k column exits 1" -- bash "$BUILD" "$ROWS"
+    assert_contains "$err" "Renamed column" "missing $k column names the property"
+    assert_eq "old index" "$(cat "$NOTION_HUB_DIR/index.md")" "missing $k column keeps index.md"
+  done
+}
+
+test_string_config_values() {
+  setup
+  jq '.values.load.always = "Always" | .scopes.private_values = "Personal"' "$NOTION_HUB_DIR/config.json" > "$NOTION_HUB_DIR/c.tmp" && mv "$NOTION_HUB_DIR/c.tmp" "$NOTION_HUB_DIR/config.json"
+  bash "$BUILD" "$ROWS" >/dev/null
+  assert_contains "$(row 'Working style')" "- private/always/ro |" "string always value matches exactly"
+  setup
+  jq '.values.load.always = "Always on" | .scopes.private_values = "Personal stuff"' "$NOTION_HUB_DIR/config.json" > "$NOTION_HUB_DIR/c.tmp" && mv "$NOTION_HUB_DIR/c.tmp" "$NOTION_HUB_DIR/config.json"
+  bash "$BUILD" "$ROWS" >/dev/null
+  assert_contains "$(row 'Working style')" "- shared/auto/ro |" "string values are not substring-matched"
+}
+
 test_flags; test_sort; test_escaping; test_header; test_optional
 test_empty_keeps_old; test_malformed_keeps_old; test_no_config
+test_missing_column; test_string_config_values
 finish

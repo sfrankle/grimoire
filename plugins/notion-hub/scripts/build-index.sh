@@ -23,6 +23,17 @@ jq -e 'type == "object"' "$config" >/dev/null 2>&1 || fail "$config is not a val
 jq -e 'type == "array" and length > 0 and all(.[]; type == "object")' "$rows" >/dev/null 2>&1 \
   || fail "rows file is empty or malformed, index left unchanged."
 
+# A mapped title, summary or visibility column that no row has means the config names a column that was renamed.
+missing="$(jq -r --slurpfile cfg "$config" '
+  . as $rows
+  | ($cfg[0].fields // {}) as $f
+  | ["title", "summary", "visibility"][]
+  | select($f[.] != null and $f[.] != "")
+  | $f[.] as $name
+  | select(any($rows[]; (.properties // {}) | has($name)) | not)
+  | "\(.) (\($name))"' "$rows" 2>/dev/null | head -n 1)"
+[ -z "$missing" ] || fail "mapped column $missing is in no row. Check config.json fields against the database, index left unchanged."
+
 tmp="$(mktemp "$dir/.index.md.XXXXXX")" || fail "cannot write to $dir."
 trap 'rm -f "$tmp"' EXIT
 
@@ -42,10 +53,10 @@ HEADER
     $cfg[0] as $c
     | ($c.fields // {}) as $f
     | ($c.values // {}) as $v
-    | ($c.scopes.private_values // []) as $priv
     | def arr: if . == null then [] elif type == "array" then map(tostring) else [tostring] end;
-      def prop($k): if $f[$k] == null then [] else (.properties // {})[$f[$k]] | arr end;
-      def hit($vals; $set): any($vals[]; . as $x | (($set // []) | index($x)) != null);
+      ($c.scopes.private_values | arr) as $priv
+    | def prop($k): if $f[$k] == null then [] else (.properties // {})[$f[$k]] | arr end;
+      def hit($vals; $set): ($set | arr) as $s | any($vals[]; . as $x | ($s | index($x)) != null);
       def norm: tostring | gsub("\\|"; "/") | gsub("\\s+"; " ") | sub("^ "; "") | sub(" $"; "");
       def opt($k): (prop($k) | map(norm) | map(select(. != "")) | join(", "))
         | if . == "" then empty else "\($k): \(.)" end;
