@@ -35,7 +35,7 @@ At session start the hook prints, in order:
 The age is there so a stale index is never silent.
 After 7 days the header suggests running `/notion-refresh`.
 Output is capped at 9500 characters, set by `NOTION_HUB_MAX_CHARS`.
-If rows are cut, a visible warning says how many.
+If rows are cut, a visible warning says how many and suggests shortening summaries or moving pages to the ask load value.
 
 Saving goes the other way.
 `/notion-save` turns what a session learned into hub pages, checking each row's edit flag first.
@@ -72,6 +72,9 @@ None of them are in this repo.
   See `examples/rules.md`.
 - `rules.private.md`: optional rules that would reveal private material, shown only in private folders.
 - `index.md`: the cached index, written by `/notion-refresh`.
+  A new index applies from the next session, because the hook runs at session start.
+- `rows.json`: transient, written by `/notion-refresh` before it builds the index.
+  It holds every row, including private ones, so keep it out of shared folders.
 
 ## Changing things later
 

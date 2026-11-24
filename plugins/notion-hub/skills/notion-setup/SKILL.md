@@ -39,7 +39,7 @@ Ask the user one question at a time, as plain prose.
 8. If `rules.md` exists, show it and keep or edit it, interviewing only on request.
    Otherwise seed it with three short questions: what goes in the hub, what goes elsewhere, and when to suggest a save.
    Offer `rules.private.md` for rules that would reveal private material, such as where personal documents live.
-9. Show both files, and write only after the user confirms.
+9. Show `config.json`, `rules.md` and `rules.private.md` if used, and write only after the user confirms.
 10. Load the `notion-refresh` skill to build the first index.
 
 ## Other agents
