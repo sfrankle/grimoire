@@ -12,10 +12,9 @@ Skills and plugins I use with coding agents.
 ## Plugins
 
 - **articulate**: `/bruv` restates the last message in plain language; `/unslop` strips AI tells from a piece of writing.
+- **notion-hub**: uses a Notion database as an agent's long-term memory index, with `/notion-setup`, `/notion-refresh` and `/notion-save`.
 - **productivity**: `/handoff` writes a handoff document so a fresh session can continue the work.
 - **terminal**: `commit` writes a one-line Conventional Commit with the harness's co-author trailer.
-
-Coming next: **notion-hub**, which uses a Notion database as an agent's long-term memory index.
 
 ## Other agents
 
