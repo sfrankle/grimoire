@@ -79,7 +79,7 @@ main() {
     echo "Threads needs jq to read its config. Install jq and start a new session."
     return 0
   fi
-  if ! jq -e 'type == "object" and ((.notion_hub // "auto") | . == "auto" or . == "off")' "$root/config.json" >/dev/null; then
+  if ! jq -e 'type == "object" and ((has("notion_hub") | not) or (.notion_hub | . == "auto" or . == "off"))' "$root/config.json" >/dev/null; then
     echo "Threads config is invalid. Run /threads-setup to fix it."
     return 0
   fi

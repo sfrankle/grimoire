@@ -21,6 +21,17 @@ for n in "" -x Homelab a/b .. "a b" a_b; do
   assert_exit 1 "valid_name rejects '$n'" -- valid_name "$n"
 done
 
+# shellcheck disable=SC2016
+# Bracket ranges follow the locale's collation order, so check under a real locale too.
+if locale -a 2>/dev/null | grep -qx 'en_US.UTF-8'; then
+  for n in Homelab aAb é; do
+    assert_exit 1 "valid_name rejects '$n' under en_US.UTF-8" -- env LC_ALL=en_US.UTF-8 bash -c '. "$1"; valid_name "$2"' _ "$ROOT/scripts/lib.sh" "$n"
+  done
+  assert_exit 0 "valid_name accepts threads-2 under en_US.UTF-8" -- env LC_ALL=en_US.UTF-8 bash -c '. "$1"; valid_name "$2"' _ "$ROOT/scripts/lib.sh" threads-2
+else
+  echo "PASS (skipped: en_US.UTF-8 locale not installed)"
+fi
+
 assert_eq "a / b" "$(one_line $'a |\n  b')" "one_line flattens whitespace and pipes"
 assert_eq "x y" "$(one_line $'  x \t y  ')" "one_line trims"
 

@@ -25,7 +25,7 @@ While it works, Claude writes once a thing is settled:
 - `decisions.md` gains an entry at the top when a decision is made.
 - `log.md` gets one line per session, with the session id so you can find the transcript.
 
-The plugin never deletes or moves your files.
+The plugin never deletes your files, and renaming a project moves its folder only after you confirm.
 
 ## Install
 

@@ -23,10 +23,10 @@ need_jq() {
   command -v jq >/dev/null 2>&1
 }
 
-# Return 0 when the name is a safe folder name: lowercase letters, digits and hyphens, not starting with a hyphen.
+# Return 0 when the name is a safe folder name (characters spelled out, since ranges follow the locale): lowercase letters, digits and hyphens, not starting with a hyphen.
 valid_name() {
   case "$1" in
-    "" | -* | *[!a-z0-9-]*) return 1 ;;
+    "" | -* | *[!abcdefghijklmnopqrstuvwxyz0123456789-]*) return 1 ;;
   esac
   return 0
 }

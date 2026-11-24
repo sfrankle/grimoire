@@ -66,7 +66,7 @@ test_no_config() {
 
 test_bad_config() {
   local bad out
-  for bad in '{' '[1,2]' '{"version":1,"notion_hub":"maybe"}'; do
+  for bad in '{' '[1,2]' '{"version":1,"notion_hub":"maybe"}' '{"version":1,"notion_hub":false}' '{"version":1,"notion_hub":true}' '{"version":1,"notion_hub":null}'; do
     fixture; printf '%s' "$bad" > "$THREADS_DIR/config.json"
     out="$(run_hook "$HOME/code/homelab")"
     assert_eq "Threads config is invalid. Run /threads-setup to fix it." "$out" "bad config $bad: the one line"
