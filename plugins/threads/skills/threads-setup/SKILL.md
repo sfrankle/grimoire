@@ -8,7 +8,8 @@ disable-model-invocation: true
 
 Create or edit `config.json` and `rules.md` in the threads folder, `$THREADS_DIR`, or `~/.claude/threads` when that is unset.
 Create the folder if missing.
-The shapes to fill are `../../examples/config.json` and `../../examples/rules.md`, relative to this skill's folder (`${CLAUDE_PLUGIN_ROOT}/examples/` in Claude Code).
+The shapes to fill are `${CLAUDE_PLUGIN_ROOT}/examples/config.json` and `rules.md` beside it.
+`${CLAUDE_PLUGIN_ROOT}` is set by Claude Code to this plugin's folder; in other harnesses it is `../..` from this skill's folder.
 Ask the user one question at a time, as plain prose.
 
 ## Steps

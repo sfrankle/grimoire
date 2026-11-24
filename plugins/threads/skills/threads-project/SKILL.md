@@ -8,7 +8,7 @@ argument-hint: "create, rename or close, and the project name"
 # Threads project
 
 Create, rename or close a project in the threads folder, `$THREADS_DIR`, or `~/.claude/threads` when that is unset.
-`new.sh` is in this plugin's `../../scripts/`, relative to this skill's folder (`${CLAUDE_PLUGIN_ROOT}/scripts/` in Claude Code).
+Commands use `${CLAUDE_PLUGIN_ROOT}`, which Claude Code sets to this plugin's folder; in other harnesses it is `../..` from this skill's folder.
 Names are slugs matching `^[a-z0-9][a-z0-9-]*$`.
 Ask one question at a time, as plain prose, and show each change and write it only after the user confirms.
 
@@ -16,7 +16,7 @@ Ask one question at a time, as plain prose, and show each change and write it on
 
 1. Ask for the name, a one-line summary, and the repo folders that map to it, offering the current folder.
    A project with no folder, such as a class, is fine.
-2. Run `bash new.sh project <name> "<summary>" "<path>"...`, quoting each path so `~` stays as typed.
+2. Run `bash "${CLAUDE_PLUGIN_ROOT}/scripts/new.sh" project <name> "<summary>" "<path>"...`, quoting each path so `~` stays as typed.
    Exit 2 means an invalid name or summary, and 4 that the project exists: ask for another name.
 3. Offer to add the body of its `state.md`: one paragraph on what the project is, what's live, and its traps.
 
