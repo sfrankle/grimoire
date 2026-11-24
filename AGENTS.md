@@ -27,6 +27,7 @@ A skill copied from another repo gets its source and license notice added to `TH
 - Run `claude plugin validate .` after changing any manifest or skill frontmatter.
 - Bump the plugin's `version` in `plugin.json` when its skills change, so `/plugin update` picks them up.
 - Commit messages are Conventional Commits.
+- CI (`.github/workflows/ci.yml`) runs the validator, ShellCheck, each plugin's `tests/run.sh`, the version-bump check and the privacy check in `scripts/ci/`; run those scripts locally to reproduce a failure.
 
 ## Markdown
 
