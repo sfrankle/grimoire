@@ -1,0 +1,5 @@
+{
+  "version": 1,
+  "docs": { "default": "unit", "projects": { "homelab": "repo:docs/specs" } },
+  "notion_hub": "auto"
+}

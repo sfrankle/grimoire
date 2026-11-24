@@ -43,6 +43,18 @@ frontmatter() {
   awk 'NR == 1 { if ($0 != "---") exit; next } $0 == "---" { exit } { print }' "$1" 2>/dev/null
 }
 
+# Return 0 when the file opens with a --- line and a later --- line closes the block.
+has_frontmatter() {
+  awk 'NR == 1 { if ($0 != "---") exit 1; next } $0 == "---" { found = 1; exit } END { exit !found }' "$1" 2>/dev/null
+}
+
+# Return 0 when the state.md is active: status unset or set to active.
+is_active() {
+  local status
+  status="$(front "$1" status)"
+  [ -z "$status" ] || [ "$status" = "active" ]
+}
+
 # Print a scalar frontmatter value, empty when absent.
 # Usage: front <file> <key>
 front() {
@@ -72,17 +84,16 @@ front_list() {
 }
 
 # Print the active project whose expanded paths contain <dir>, the longest path winning.
-# A project is active unless its status is set to something other than active.
+# Projects with an invalid folder name or unclosed frontmatter are skipped.
 # Prints nothing when none match.
 # Usage: match_project <dir>
 match_project() {
-  local dir="${1%/}" root state name status p best="" best_len=0
+  local dir="${1%/}" root state name p best="" best_len=0
   root="$(threads_dir)"
   for state in "$root"/*/state.md; do
     [ -f "$state" ] || continue
     name="$(basename "$(dirname "$state")")"
-    status="$(front "$state" status)"
-    [ -z "$status" ] || [ "$status" = "active" ] || continue
+    if ! valid_name "$name" || ! has_frontmatter "$state" || ! is_active "$state"; then continue; fi
     while IFS= read -r p; do
       p="$(expand_tilde "$p")"
       p="${p%/}"
