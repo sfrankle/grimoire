@@ -25,6 +25,11 @@
       "name": "notion-hub",
       "source": "./plugins/notion-hub",
       "description": "Use a Notion database as your agent's long-term memory index."
+    },
+    {
+      "name": "threads",
+      "source": "./plugins/threads",
+      "description": "Give multi-session work a home your agent finds on its own."
     }
   ]
 }
