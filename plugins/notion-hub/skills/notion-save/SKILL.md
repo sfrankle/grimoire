@@ -13,8 +13,7 @@ If `config.json` or `index.md` is missing there, tell the user to run `notion-se
 
 ## Guardrails
 
-Read their specifics from `config.json` and `rules.md`.
-`rules.md` may add restrictions but never loosens these.
+Read their specifics from `config.json` and `rules.md`, which may add restrictions but never loosen these.
 
 1. **Edit level**: check the row's edit flag before writing.
    A value not listed under `values.edit` counts as read-only.
@@ -28,7 +27,7 @@ Read their specifics from `config.json` and `rules.md`.
 ## Steps
 
 1. Distill the facts worth keeping, each with its reason, or read the note the user names.
-   Follow `rules.md` for what belongs in the hub and what goes elsewhere.
+   `rules.md` says what belongs in the hub and what goes elsewhere.
 2. Match each fact to a row in `index.md` and fetch the closest page.
 3. Act on that row's edit flag:
    - `ro`: propose the change in chat and make no edit.
@@ -36,14 +35,15 @@ Read their specifics from `config.json` and `rules.md`.
    - `own`: rewrite stale lines instead of appending contradictions.
 4. With no match, create an agent-owned page.
    Apply `new_pages.defaults`, copy `new_pages.template_url` when set, and start the body with the marker line.
+   Then set the `edit` field to a `values.edit.agent_owned` value whatever `defaults` says, and stop if none is mapped.
    Set properties in the connector's own format, including for multi-select values.
 5. Set the fields named in `fields`:
    - `visibility`: one of the values you chose per page under guardrail 2.
-   - `load`: the ordinary value by default.
+   - `load`: a value in neither `values.load.always` nor `values.load.ask`, as existing `auto` rows carry, or leave it unset.
      Only set the always value after the user agrees.
    - `summary`: one line of facts, such as "Kiln runs cone 6, 11 hours", not "Notes about the kiln".
    - `keywords`: reuse existing options and add a new one only when none fits.
-   - `category` and `title`: the closest existing option, and a short specific name.
+   - `category`, `title`: the closest existing option, and a short specific name.
 6. Load the `notion-refresh` skill to rebuild the index.
 7. Report one line per page: created or updated, title, visibility, load, link.
    List any changes you proposed to read-only pages for the user to make.
