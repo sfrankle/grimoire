@@ -1,0 +1,8 @@
+[
+  {"url": "https://www.notion.so/aaa1", "properties": {"Name": "NAS backup log", "Summary": "Nightly restic to B2, last restore test passed", "Tags": ["backup", "restic"], "Type": "Log", "Area": "Homelab", "Load": "When relevant", "Agent access": "Agent owned"}},
+  {"url": "https://www.notion.so/aaa2", "properties": {"Name": "Working style", "Summary": "Working preferences for agents", "Area": "Personal", "Load": "Always", "Agent access": "Read only"}},
+  {"url": "https://www.notion.so/aaa3", "properties": {"Name": "Network layout", "Summary": "VLANs, static IPs and DNS names", "Area": "Homelab", "Agent access": "Small edits"}},
+  {"url": "https://www.notion.so/aaa4", "properties": {"Name": "Power bills", "Summary": "Monthly power draw of the rack", "Area": ["Personal", "Homelab"]}},
+  {"url": "https://www.notion.so/aaa5", "properties": {"Name": "Medical notes", "Summary": "Appointments and records", "Area": "Personal", "Load": "Only when asked"}},
+  {"url": "https://www.notion.so/aaa6", "properties": {"Name": "dotfiles", "Summary": "zsh | tmux\nneovim"}}
+]
