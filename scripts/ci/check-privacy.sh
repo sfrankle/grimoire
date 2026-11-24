@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Fail when tracked files contain personal details that don't belong in a public repo.
-# Extra terms (real names, clients, folders) come from PRIVACY_DENYLIST, one per line, kept as a repo secret.
+# Extra terms (real names, clients, folders, IDs) come from PRIVACY_DENYLIST, one per line, kept as a repo secret.
+# Terms match as whole words, case-insensitive, so "frankle" does not flag "sfrankle".
 set -euo pipefail
 
 status=0
@@ -23,7 +24,7 @@ if [[ -n "${PRIVACY_DENYLIST:-}" ]]; then
   terms="$(mktemp)"
   printf '%s\n' "$PRIVACY_DENYLIST" | sed '/^[[:space:]]*$/d' > "$terms"
   # Print only file:line so the denylisted terms never reach the log.
-  hits="$(git grep -niIF -f "$terms" -- . "$self" | cut -d: -f1,2 || true)"
+  hits="$(git grep -wniIF -f "$terms" -- . "$self" | cut -d: -f1,2 || true)"
   rm -f "$terms"
   if [[ -n "$hits" ]]; then
     echo "$hits"
