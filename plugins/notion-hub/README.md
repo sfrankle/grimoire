@@ -30,7 +30,8 @@ Output stays under 9500 characters (`NOTION_HUB_MAX_CHARS`): `ask` rows, then `a
 
 Saving goes the other way.
 `/notion-save` turns what a session learned into hub pages, checking each row's edit flag first.
-Claude never writes to a hub unasked.
+Claude also saves unasked where a hub's `saves` allows it: updating its own pages, and creating new ones.
+Pages marked `ro` or `edit` always wait for you.
 
 ## Why it works this way
 
@@ -54,7 +55,8 @@ A few other choices:
 - Notion, not `CLAUDE.md`, because you already read and edit it there, from any device.
 - The index is a local file because the session-start hook runs before Claude and can't reach Notion. The header shows its age so you know when to refresh.
 - Refresh goes through each hub's connector, an MCP server you already sign in to, so there's no API token for the plugin to store or lose.
-- Claude never saves unasked. It suggests a save and you decide.
+- Claude keeps its own pages current without asking, because approving every edit to a page it owns gets old fast.
+  `saves.create` is separate because new pages are what grow a hub; set it to `ask` to keep the hub small.
 
 ## Install
 
@@ -125,9 +127,9 @@ At the top level:
 
 In each hub's folder, such as `homelab/`:
 
-- `config.json`: where the hub is, which connector it uses, which folders show it, which columns and values map to the flags, which values are private, and defaults for new pages.
+- `config.json`: where the hub is, which connector it uses, which folders show it, which columns and values map to the flags, which values are private, when Claude may save unasked (`saves`), and defaults for new pages.
   See `examples/hubs/homelab/config.json`.
-- `rules.md`: that hub's rules in plain language, such as what goes in it, what goes elsewhere, and when to suggest a save.
+- `rules.md`: that hub's rules in plain language, such as what goes in it, what goes elsewhere, and when to save.
   See `examples/hubs/homelab/rules.md`.
 - `rules.private.md`: optional rules that would reveal private material, shown only in private folders.
 - `index.md`: the cached index, written by `/notion-refresh`.

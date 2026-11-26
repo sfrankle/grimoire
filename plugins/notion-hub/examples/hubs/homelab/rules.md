@@ -10,8 +10,8 @@
 - Drafts and half-formed ideas stay in `~/notes/drafts`.
 - Runbooks and config live in the homelab repo, not the hub.
 
-## When to suggest a save
+## When to save
 
 - After a decision is settled and nobody is still debating it.
 - When a fact comes up twice in different sessions.
-- Suggest in one line and wait for a yes.
+- Keep agent-owned pages to settled facts; a session's working notes stay out.

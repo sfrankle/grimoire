@@ -10,8 +10,8 @@
 - Seed shopping lists stay in `~/garden/drafts`.
 - Photos live in the photo library, not the hub.
 
-## When to suggest a save
+## When to save
 
 - After a planting decision is settled.
 - When a fact comes up twice in different sessions.
-- Suggest in one line and wait for a yes.
+- Keep agent-owned pages to settled facts; a session's working notes stay out.

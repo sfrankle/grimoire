@@ -35,11 +35,13 @@ Ask the user one question at a time, as plain prose.
 5. Ask which `visibility` values are private, and which folders may see private rows.
    These become `scopes.private_values` and `scopes.private_paths`.
    Ask before turning on `always_shows_everywhere`, and explain that one wrong load value would then expose a private page everywhere.
-6. Set `new_pages`.
+6. Set `saves`: ask whether Claude may update its own pages unasked (`update_owned`) and create new agent-owned pages unasked (`create`), each `auto` or `ask`.
+   Suggest `auto` for updates, and `ask` for creates when the user wants the hub kept small.
+   Set `new_pages`.
    `defaults` may not set the visibility or load field.
    Ask for an optional `template_url` and `marker`.
 7. If the hub's `rules.md` exists, show it and keep or edit it, interviewing only on request.
-   Otherwise seed it with three short questions: what goes in the hub, what goes elsewhere, and when to suggest a save.
+   Otherwise seed it with three short questions: what goes in the hub, what goes elsewhere, and when to save.
    Offer `rules.private.md` for rules that would reveal private material, such as where personal documents live.
 8. With two or more hubs, seed or edit the top-level `rules.md` as routing: which facts go to which hub id, and to ask the user when unclear.
 9. Show every file to write, and write only after the user confirms.

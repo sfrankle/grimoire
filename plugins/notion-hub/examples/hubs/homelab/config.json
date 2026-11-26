@@ -16,5 +16,6 @@
     "load": { "always": ["Always"], "ask": ["Only when asked"] }
   },
   "scopes": { "private_values": ["Personal"], "private_paths": ["~/notes/personal"], "always_shows_everywhere": false },
+  "saves": { "update_owned": "auto", "create": "ask" },
   "new_pages": { "defaults": { "Agent access": "Agent owned" }, "template_url": null, "marker": "*Written by an agent. Kept current automatically.*" }
 }
