@@ -53,7 +53,7 @@ A few other choices:
 
 - Notion, not `CLAUDE.md`, because you already read and edit it there, from any device.
 - The index is a local file because the session-start hook runs before Claude and can't reach Notion. The header shows its age so you know when to refresh.
-- Refresh goes through the connector, so there's no API token to set up or lose.
+- Refresh goes through each hub's connector, an MCP server you already sign in to, so there's no API token for the plugin to store or lose.
 - Claude never saves unasked. It suggests a save and you decide.
 
 ## Install
@@ -65,8 +65,9 @@ A few other choices:
 
 You need:
 
-- A Notion connector for each workspace you use, such as the claude.ai Notion connector.
-  There is no API token: refresh goes through the connector.
+- One Notion MCP server per hub, named in its `hub.connector`.
+  The claude.ai Notion connector covers one workspace; each extra workspace needs its own Notion MCP server with its own credentials.
+  The plugin stores no API token: refresh goes through the connector.
 - `jq`, for example `brew install jq`.
 
 ## Set up
