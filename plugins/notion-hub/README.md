@@ -32,6 +32,38 @@ Saving goes the other way.
 `/notion-save` turns what a session learned into hub pages, checking each row's edit flag first.
 Claude never writes to the hub unasked.
 
+## Why it works this way
+
+- **Notion holds the facts, not `CLAUDE.md` or memory files.**
+  Settled facts and decisions live where you already read and edit them, on any device, and any agent with a Notion connector can reach them.
+  Local memory stays for how you like to work.
+- **An index, not the whole hub.**
+  Loading every page would cost every session's context.
+  One line per page is enough for Claude to pick what to fetch, and a summary that states the facts often answers without a fetch.
+- **A cached index, rebuilt through the connector.**
+  The session-start hook runs before Claude and cannot call the connector, so it prints a local file.
+  Refreshing through the connector avoids an API token and database sharing, the step that most often breaks, and fails silently when it does.
+  The cost is that pages added by hand show up only after a refresh, so the header shows the index's age.
+- **Flags mapped from your own columns.**
+  The plugin needs to know what a value means, not what you call it, so your database keeps its shape.
+  An unmapped edit value counts as read only, so a gap in the mapping fails safe.
+- **Edit levels keep your pages yours.**
+  Some pages should stay in your words: decisions you made, facts that must stay exact, material you saved as you found it.
+  In Homelab Notes that is the page on why the NAS runs ZFS, the warranty dates, and a vendor's setup notes.
+  Claude proposes changes to those in chat, keeps its own pages current, and creates only pages it owns.
+- **A column, not Notion's page lock.**
+  A lock blocks edits in the Notion app, not through the API the connector uses ([Notion API docs](https://developers.notion.com/reference/patch-page)).
+  It also locks you out of your own page, and it is only on or off.
+  The edit flag sits in the index, so Claude knows what it may do before it opens a page.
+  It is an instruction Claude follows, not a hard block.
+- **Private rows stay in private folders.**
+  One hub can serve personal and work folders without personal pages showing up in shared projects.
+- **Rules in prose, config in JSON.**
+  `config.json` holds only what the hook script must parse.
+  Everything else is in `rules.md`, in your words, so the skills stay short and the same for everyone.
+- **Saving waits for you.**
+  The hub is the source of truth, so Claude suggests a save and you decide.
+
 ## Install
 
 ```
