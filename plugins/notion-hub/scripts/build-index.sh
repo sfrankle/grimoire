@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
-# Usage: build-index.sh <rows.json>
-# Turns raw connector rows into $(hub_dir)/index.md.
+# Usage: build-index.sh <rows.json> [hub]
+# Turns raw connector rows into index.md in that hub's folder.
+# With one hub folder the id may be left out; with several, name one.
+# A legacy setup (config.json at the top of $(hub_dir)) takes no id.
 # On any error it prints one reason to stderr, exits 1 and leaves index.md as it was.
 
 here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -13,12 +15,11 @@ fail() {
 }
 
 rows="$1"
-dir="$(hub_dir)"
-config="$dir/config.json"
 
 need_jq || fail "jq is required but not installed."
-[ -n "$rows" ] || fail "usage: build-index.sh <rows.json>"
-[ -f "$config" ] || fail "no config at $config. Run /notion-setup first."
+[ -n "$rows" ] || fail "usage: build-index.sh <rows.json> [hub]"
+dir="$(hub_resolve "${2:-}" 2>&1)" || fail "$dir"
+config="$dir/config.json"
 [ -f "$rows" ] || fail "rows file not found: $rows"
 
 # Every page has a title, so a title column in no row means config.json fields is out of date.

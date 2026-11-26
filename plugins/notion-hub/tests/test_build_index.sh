@@ -99,7 +99,39 @@ test_string_config_values() {
   assert_contains "$(row 'Working style')" "- shared/auto/ro |" "string values are not substring-matched"
 }
 
+test_multi_named() {
+  setup_multi
+  bash "$BUILD" "$ROWS_GARDEN" garden >/dev/null
+  assert_contains "$(cat "$NOTION_HUB_DIR/garden/index.md")" "# Notion hub index: Garden Journal" "multi named: garden header"
+  assert_eq "no" "$([ -e "$NOTION_HUB_DIR/homelab/index.md" ] && echo yes || echo no)" "multi named: other hub untouched"
+}
+
+test_multi_unnamed_fails() {
+  setup_multi
+  local err; err="$(bash "$BUILD" "$ROWS_GARDEN" 2>&1)"
+  assert_exit 1 "multi unnamed: exits 1" -- bash "$BUILD" "$ROWS_GARDEN"
+  assert_contains "$err" "build-index: more than one hub; name one of: garden, homelab" "multi unnamed: lists hubs"
+  assert_eq "no" "$(ls "$NOTION_HUB_DIR"/*/index.md >/dev/null 2>&1 && echo yes || echo no)" "multi unnamed: no index written"
+}
+
+test_multi_unknown_fails() {
+  setup_multi
+  local id err
+  for id in ../x nope; do
+    assert_exit 1 "multi unknown $id: exits 1" -- bash "$BUILD" "$ROWS_GARDEN" "$id"
+    err="$(bash "$BUILD" "$ROWS_GARDEN" "$id" 2>&1)"
+    assert_contains "$err" "Hubs: garden, homelab" "multi unknown $id: lists hubs"
+  done
+}
+
+test_legacy_with_id_fails() {
+  setup
+  assert_exit 1 "legacy with id: exits 1" -- bash "$BUILD" "$ROWS" homelab
+  assert_eq "no" "$([ -e "$NOTION_HUB_DIR/index.md" ] && echo yes || echo no)" "legacy with id: no index written"
+}
+
 test_flags; test_sort; test_escaping; test_header; test_optional
 test_empty_keeps_old; test_malformed_keeps_old; test_no_config
 test_missing_column; test_no_visibility_is_shared; test_string_config_values
+test_multi_named; test_multi_unnamed_fails; test_multi_unknown_fails; test_legacy_with_id_fails
 finish
