@@ -1,6 +1,6 @@
 {
   "name": "notion-hub",
-  "version": "0.1.1",
+  "version": "0.1.0",
   "description": "Use a Notion database as your agent's long-term memory index.",
   "author": { "name": "sfrankle" },
   "repository": "https://github.com/sfrankle/grimoire",
