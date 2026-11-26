@@ -4,7 +4,8 @@
 #   new.sh project <name> <summary> [path...]
 #   new.sh unit <project> <name> <summary>
 # Prints the path of the new state.md.
-# Exit codes: 0 created, 2 bad usage or invalid name, 3 project missing, 4 already exists.
+# Project paths starting with / or ~ are stored as given; a relative path must name an existing folder and is stored absolute.
+# Exit codes: 0 created, 2 bad usage, invalid name or missing relative path, 3 project missing or not active, 4 already exists.
 # Everything is validated before the first folder is made, so a non-zero exit writes nothing.
 set -u
 
@@ -42,6 +43,15 @@ create_project() {
     path="${path#"${path%%[![:space:]]*}"}"
     path="${path%"${path##*[![:space:]]}"}"
     [ -n "$path" ] || usage
+    # The hook compares paths against an absolute folder, so a relative one would never match.
+    # shellcheck disable=SC2088  # A literal ~ is matched on purpose; expand_tilde resolves it later.
+    case "$path" in
+      /* | "~" | "~/"*) ;;
+      *)
+        [ -d "$path" ] || { echo "relative path is not a folder: $path" >&2; exit 2; }
+        path="$(cd "$path" && pwd)" || exit 1
+        ;;
+    esac
     clean+=("$path")
   done
   set -- ${clean[@]+"${clean[@]}"}
@@ -71,6 +81,8 @@ create_unit() {
   [ -n "$summary" ] || usage
   pdir="$(threads_dir)/$project"
   [ -d "$pdir" ] || { echo "no such project: $project" >&2; exit 3; }
+  # A unit in a closed or unreadable project would never be shown at session start.
+  usable "$pdir/state.md" || { echo "project is not active or its state.md frontmatter is unreadable: $project" >&2; exit 3; }
   dir="$pdir/units/$name"
   [ ! -e "$dir" ] || { echo "already exists: $dir" >&2; exit 4; }
 

@@ -23,6 +23,7 @@ Ask the user one question at a time, as plain prose.
    - `docs.projects`: per-project overrides, such as a project whose specs are committed to its repo.
    - `notion_hub`: `auto` suggests `/notion-save` for settled facts when that skill is installed, `off` never does.
 4. Fill `rules.md`: short free-form rules the hook prints at the start of every session, such as how to name units.
+   Keep it under 1,000 characters; the hook cuts anything longer.
    Offer the example's lines as a starting point, and keep it brief, since every session pays for it.
 5. Show both files and write only after the user confirms.
    Check the written config with `jq . config.json`.

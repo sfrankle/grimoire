@@ -57,6 +57,7 @@ calculus/state.md
 
 - `config.json`: where specs and plans go, and the Notion setting (see `examples/config.json`).
 - `rules.md`: short rules printed at every session start, so keep it brief.
+  The hook prints the first 1,000 characters and points to the file for the rest.
   See `examples/rules.md`.
 - `<project>/state.md`: frontmatter with `name`, `summary`, `paths` and `status` (`active` or `closed`), then one paragraph.
   Units have the same frontmatter minus `paths`.

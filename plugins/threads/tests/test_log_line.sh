@@ -82,4 +82,24 @@ unset THREADS_TODAY
 bash "$LOG" homelab other today-id "x"
 assert_contains "$(cat "$P/homelab/units/other/log.md")" "| today-id | x" "default date call writes"
 assert_contains "$(cat "$P/homelab/units/other/log.md")" "- $(date +%F) | today-id" "default date is today"
+
+# The log keeps the umask's permissions, not mktemp's 0600.
+bash "$NEW" unit homelab perms "Perms" >/dev/null
+(umask 022 && bash "$LOG" homelab perms s1 "x")
+assert_eq "$P/homelab/units/perms/log.md" "$(find "$P/homelab/units/perms/log.md" -perm 0644)" "log mode follows the umask"
+
+# Parallel writers to one unit keep every line.
+bash "$NEW" unit homelab busy "Busy" >/dev/null
+for i in $(seq 1 20); do bash "$LOG" homelab busy "s$i" "line $i" & done
+wait
+assert_eq "20" "$(wc -l < "$P/homelab/units/busy/log.md" | tr -d ' ')" "parallel writers lose no line"
+assert_eq "no" "$([ -e "$P/homelab/units/busy/.log.lock" ] && echo yes || echo no)" "lock released"
+
+# A held lock times out with exit 5 and leaves the log alone.
+mkdir "$P/homelab/units/perms/.log.lock"
+before="$(cat "$P/homelab/units/perms/log.md")"
+assert_exit 5 "held lock exits 5" -- env THREADS_LOCK_TRIES=1 bash "$LOG" homelab perms s2 "y"
+assert_eq "$before" "$(cat "$P/homelab/units/perms/log.md")" "held lock leaves log unchanged"
+assert_eq "yes" "$([ -d "$P/homelab/units/perms/.log.lock" ] && echo yes)" "other session's lock not removed"
+rmdir "$P/homelab/units/perms/.log.lock"
 finish

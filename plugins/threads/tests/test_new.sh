@@ -71,4 +71,20 @@ assert_eq "~/code/trimmed" "$(front_list "$P/trimmed/state.md" paths)" "path whi
 rm -rf "$THREADS_DIR"
 bash "$NEW" project first "First" >/dev/null
 assert_eq "first" "$(front "$THREADS_DIR/first/state.md" name)" "first project creates the root"
+
+# Relative paths are stored absolute; missing relative paths are refused.
+mkdir -p "$T/work/rel"
+(cd "$T/work" && bash "$NEW" project rel "Rel" rel .) >/dev/null
+assert_eq "$(printf '%s\n%s' "$T/work/rel" "$T/work")" "$(front_list "$THREADS_DIR/rel/state.md" paths)" "relative paths stored absolute"
+assert_eq "rel" "$(match_project "$T/work/rel")" "relative path project matches"
+assert_exit 2 "missing relative path exits 2" -- bash "$NEW" project nope s does/not/exist
+assert_eq "no" "$([ -e "$THREADS_DIR/nope" ] && echo yes || echo no)" "missing relative path writes nothing"
+
+# Units are refused in closed projects and projects without readable frontmatter.
+bash "$NEW" project oldproj "Old" >/dev/null
+sed -i.bak 's/^status: active$/status: closed/' "$THREADS_DIR/oldproj/state.md"
+assert_exit 3 "unit in closed project exits 3" -- bash "$NEW" unit oldproj fix s
+assert_eq "no" "$([ -e "$THREADS_DIR/oldproj/units/fix" ] && echo yes || echo no)" "closed project gets no unit"
+mkdir "$THREADS_DIR/bare"
+assert_exit 3 "unit in project without state.md exits 3" -- bash "$NEW" unit bare fix s
 finish

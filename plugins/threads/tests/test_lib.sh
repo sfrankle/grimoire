@@ -68,4 +68,24 @@ assert_eq "" "$(match_project "$HOME/elsewhere")" "match: none"
 proj homelab closed '~/code/homelab/'
 assert_eq "code" "$(match_project "$HOME/code/homelab/sub")" "match: closed project ignored"
 assert_eq "" "$(match_project "$HOME/elsewhere")" "match: closed project, elsewhere"
+
+# Hand-edited frontmatter shapes: CRLF, quotes, trailing spaces, inline and scalar lists.
+printf -- '---\r\nsummary: "Quoted"\r\nstatus: "active"\r\npaths: \r\n  - "~/crlf"\r\n---\r\n' > "$T/p/crlf.md"
+assert_eq "yes" "$(has_frontmatter "$T/p/crlf.md" && echo yes)" "crlf: frontmatter found"
+assert_eq "Quoted" "$(front "$T/p/crlf.md" summary)" "crlf: quotes and carriage return dropped"
+assert_eq "yes" "$(is_active "$T/p/crlf.md" && echo yes)" "quoted status is active"
+assert_eq "~/crlf" "$(front_list "$T/p/crlf.md" paths)" "crlf: list key with trailing space read"
+printf -- "---\npaths: [~/a, '~/b' , \"~/c\"]\n---\n" > "$T/p/inline.md"
+assert_eq "$(printf '~/a\n~/b\n~/c')" "$(front_list "$T/p/inline.md" paths)" "inline list read"
+printf -- '---\npaths: ~/one\n---\n' > "$T/p/scalar.md"
+assert_eq "~/one" "$(front_list "$T/p/scalar.md" paths)" "scalar list read as one item"
+
+# Symlinked paths match their resolved form.
+mkdir -p "$T/real/code/linked/sub"
+ln -s "$T/real/code" "$HOME/code-link"
+proj linked active '~/code-link/linked'
+assert_eq "linked" "$(match_project "$T/real/code/linked/sub")" "match: symlinked path resolves"
+mkdir -p "$THREADS_DIR/inline"
+printf -- '---\nstatus: active\npaths: [%s]\n---\n' "$T/real/code/inline" > "$THREADS_DIR/inline/state.md"
+assert_eq "inline" "$(match_project "$T/real/code/inline")" "match: inline list path"
 finish

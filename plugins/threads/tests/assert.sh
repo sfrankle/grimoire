@@ -1,5 +1,6 @@
 # shellcheck shell=bash disable=SC2034  # HOOK, NEW and friends are read by the files that source this.
-# Test helpers. Source this file, then call finish at the end of the test file.
+# Test helpers.
+# Source this file, then call finish at the end of the test file.
 FAILS=0
 
 pass() { printf 'PASS %s\n' "$1"; }

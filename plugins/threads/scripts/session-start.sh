@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # SessionStart hook: prints the user's rules, the active projects, and the likely project's state and units.
-# Takes no arguments. Reads the hook input JSON on stdin, CLAUDE_PROJECT_DIR (falls back to PWD), THREADS_DIR and THREADS_MAX_CHARS.
+# Takes no arguments.
+# Reads the hook input JSON on stdin, CLAUDE_PROJECT_DIR (falls back to PWD), THREADS_DIR and THREADS_MAX_CHARS.
 # Always exits 0 and prints nothing to stderr.
 #
 # Output cap: Claude Code caps a hook's plain stdout at 10,000 characters.
@@ -8,6 +9,9 @@
 # Source: https://code.claude.com/docs/en/hooks (checked 2026-11-24).
 # The default below leaves 500 characters of headroom.
 DEFAULT_MAX_CHARS=9500
+# The trimmer never cuts F lines, so each long F block has its own cap.
+# rules.md is cut to this many characters.
+RULES_MAX_CHARS=1000
 # The likely project's state.md body is cut to this many characters.
 BODY_MAX_CHARS=1500
 
@@ -25,12 +29,16 @@ tagged() {
 
 # The state.md text after the frontmatter, leading blank lines dropped.
 body_of() {
-  awk 'NR == 1 { next } !done && $0 == "---" { done = 1; next } done { print }' "$1" | awk 'NF { p = 1 } p'
+  awk '{ sub(/\r$/, "") } NR == 1 { next } !done && /^---[ \t]*$/ { done = 1; next } done { print }' "$1" | awk 'NF { p = 1 } p'
 }
 
-# Usage: usable <state.md>: valid folder name, closed frontmatter, active.
-usable() {
-  valid_name "$(basename "$(dirname "$1")")" && has_frontmatter "$1" && is_active "$1"
+# Usage: capped <text> <max> <file>: prints the text, cut to max characters with a pointer to the file.
+capped() {
+  if [ "${#1}" -gt "$2" ]; then
+    printf '%s\n… (truncated, read %s)\n' "${1:0:$2}" "$3"
+  else
+    printf '%s\n' "$1"
+  fi
 }
 
 # One "- <project> | <summary> | <path>, <path>" line per active project, alphabetical.
@@ -86,7 +94,7 @@ main() {
   notion="$(jq -r '.notion_hub // "auto"' "$root/config.json")"
 
   rules=""
-  [ -f "$root/rules.md" ] && rules="$(cat "$root/rules.md")"
+  [ -f "$root/rules.md" ] && rules="$(capped "$(tr -d '\r' < "$root/rules.md")" "$RULES_MAX_CHARS" "$root/rules.md")"
 
   projects="$(project_lines "$root")"
   if [ -z "$projects" ]; then
@@ -105,10 +113,7 @@ main() {
   body=""
   units=""
   if [ -n "$likely" ]; then
-    body="$(body_of "$root/$likely/state.md")"
-    if [ "${#body}" -gt "$BODY_MAX_CHARS" ]; then
-      body="${body:0:$BODY_MAX_CHARS}"$'\n'"… (truncated, read $root/$likely/state.md)"
-    fi
+    body="$(capped "$(body_of "$root/$likely/state.md")" "$BODY_MAX_CHARS" "$root/$likely/state.md")"
     units="$(unit_lines "$root/$likely/units")"
   fi
 

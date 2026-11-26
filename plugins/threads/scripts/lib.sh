@@ -38,14 +38,15 @@ one_line() {
 }
 
 # Print the lines of the frontmatter block (between the first two --- lines) of a file.
+# A trailing carriage return is dropped from every line, so CRLF files read the same as LF ones.
 # Prints nothing when the file does not start with ---.
 frontmatter() {
-  awk 'NR == 1 { if ($0 != "---") exit; next } $0 == "---" { exit } { print }' "$1" 2>/dev/null
+  awk '{ sub(/\r$/, "") } NR == 1 { if ($0 !~ /^---[ \t]*$/) exit; next } /^---[ \t]*$/ { exit } { print }' "$1" 2>/dev/null
 }
 
 # Return 0 when the file opens with a --- line and a later --- line closes the block.
 has_frontmatter() {
-  awk 'NR == 1 { if ($0 != "---") exit 1; next } $0 == "---" { found = 1; exit } END { exit !found }' "$1" 2>/dev/null
+  awk '{ sub(/\r$/, "") } NR == 1 { if ($0 !~ /^---[ \t]*$/) exit 1; next } /^---[ \t]*$/ { found = 1; exit } END { exit !found }' "$1" 2>/dev/null
 }
 
 # Return 0 when the state.md is active: status unset or set to active.
@@ -55,57 +56,76 @@ is_active() {
   [ -z "$status" ] || [ "$status" = "active" ]
 }
 
+# Return 0 when a state.md can be listed: valid folder name, closed frontmatter, active.
+usable() {
+  valid_name "$(basename "$(dirname "$1")")" && has_frontmatter "$1" && is_active "$1"
+}
+
+# Awk function shared by front and front_list: trims a value and drops one pair of surrounding quotes.
+AWK_CLEAN='
+  function clean(v) {
+    sub(/^[ \t]+/, "", v); sub(/[ \t]+$/, "", v)
+    if (v ~ /^".*"$/ || v ~ /^\047.*\047$/) v = substr(v, 2, length(v) - 2)
+    return v
+  }'
+
 # Print a scalar frontmatter value, empty when absent.
 # Usage: front <file> <key>
 front() {
-  frontmatter "$1" | awk -v key="$2" '
-    index($0, key ":") == 1 {
-      v = substr($0, length(key) + 2)
-      sub(/^[ \t]+/, "", v)
-      sub(/[ \t\r]+$/, "", v)
-      print v
-      exit
-    }'
+  frontmatter "$1" | awk -v key="$2" "$AWK_CLEAN"'
+    index($0, key ":") == 1 { print clean(substr($0, length(key) + 2)); exit }'
 }
 
-# Print the items of a block list in the frontmatter, one per line.
+# Print the items of a frontmatter list, one per line.
+# Reads a block list ("key:" then "  - item" lines), an inline list ("key: [a, b]") or a single scalar ("key: a").
 # Usage: front_list <file> <key>
 front_list() {
-  frontmatter "$1" | awk -v key="$2" '
-    $0 == key ":" { inlist = 1; next }
-    inlist && /^[ \t]*-[ \t]/ {
-      v = $0
-      sub(/^[ \t]*-[ \t]+/, "", v)
-      sub(/[ \t\r]+$/, "", v)
-      print v
-      next
+  frontmatter "$1" | awk -v key="$2" "$AWK_CLEAN"'
+    !inlist && index($0, key ":") == 1 {
+      v = clean(substr($0, length(key) + 2))
+      if (v == "") { inlist = 1; next }
+      if (v ~ /^\[.*\]$/) {
+        n = split(substr(v, 2, length(v) - 2), items, ",")
+        for (i = 1; i <= n; i++) { item = clean(items[i]); if (item != "") print item }
+      } else print v
+      exit
     }
+    inlist && /^[ \t]*-[ \t]/ { v = $0; sub(/^[ \t]*-/, "", v); print clean(v); next }
+    inlist && /^[ \t]*$/ { next }
     inlist { exit }'
 }
 
+# Print the physical path of an existing folder, or the path unchanged when it does not exist.
+physical_dir() {
+  (cd "$1" 2>/dev/null && pwd -P) || printf '%s\n' "$1"
+}
+
 # Print the active project whose expanded paths contain <dir>, the longest path winning.
-# Projects with an invalid folder name or unclosed frontmatter are skipped.
+# Paths are compared as written and again with symlinks resolved, so /tmp and /private/tmp match.
+# Projects that are not usable are skipped.
 # Prints nothing when none match.
 # Usage: match_project <dir>
 match_project() {
-  local dir="${1%/}" root state name p best="" best_len=0
+  local dir="${1%/}" rdir root state name p rp best="" best_len=0
+  rdir="$(physical_dir "$dir")"
   root="$(threads_dir)"
   for state in "$root"/*/state.md; do
     [ -f "$state" ] || continue
+    usable "$state" || continue
     name="$(basename "$(dirname "$state")")"
-    if ! valid_name "$name" || ! has_frontmatter "$state" || ! is_active "$state"; then continue; fi
     while IFS= read -r p; do
       p="$(expand_tilde "$p")"
       p="${p%/}"
       [ -n "$p" ] || continue
+      rp="$(physical_dir "$p")"
       case "$dir" in
-        "$p" | "$p"/*)
-          if [ "${#p}" -gt "$best_len" ]; then
-            best="$name"
-            best_len="${#p}"
-          fi
-          ;;
+        "$p" | "$p"/*) ;;
+        *) case "$rdir" in "$rp" | "$rp"/*) ;; *) continue ;; esac ;;
       esac
+      if [ "${#p}" -gt "$best_len" ]; then
+        best="$name"
+        best_len="${#p}"
+      fi
     done <<EOF_PATHS
 $(front_list "$state" paths)
 EOF_PATHS

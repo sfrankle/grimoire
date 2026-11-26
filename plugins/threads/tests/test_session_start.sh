@@ -222,7 +222,32 @@ test_cap_units_before_projects() {
   assert_contains "$(last_line "$out")" "2 more projects and 1 more units did not fit" "cap order: note counts both"
 }
 
+# Long rules are capped so the fixed lines stay under Claude Code's limit.
+test_rules_cap() {
+  fixture
+  printf '%12000s\n' '' | tr ' ' 'r' > "$THREADS_DIR/rules.md"
+  local i
+  for i in $(seq 1 30); do bash "$NEW" unit homelab "unit-$i" "Filler unit number $i with a summary" >/dev/null; done
+  run_hook "$HOME/code/homelab" > "$T/out"
+  local chars; chars="$(LC_ALL=C wc -c < "$T/out" | tr -d ' ')"
+  if [ "$chars" -le 9500 ]; then pass "rules cap: output within default cap"; else fail "rules cap: output within default cap ($chars)"; fi
+  assert_contains "$(cat "$T/out")" "… (truncated, read $THREADS_DIR/rules.md)" "rules cap: pointer to rules.md"
+  assert_contains "$(cat "$T/out")" "Likely project: homelab" "rules cap: likely project kept"
+}
+
+# A CRLF state.md is still listed and matched.
+test_crlf_project() {
+  fixture
+  mkdir -p "$THREADS_DIR/winproj"
+  printf -- '---\r\nname: winproj\r\nsummary: Saved on Windows\r\npaths:\r\n  - ~/code/win\r\nstatus: active\r\n---\r\n\r\nWin body.\r\n' > "$THREADS_DIR/winproj/state.md"
+  local out; out="$(run_hook "$HOME/code/win")"
+  assert_contains "$out" "- winproj | Saved on Windows | ~/code/win" "crlf: project listed"
+  assert_contains "$out" "Likely project: winproj" "crlf: project matched"
+  assert_contains "$out" "Win body." "crlf: body printed"
+}
+
 test_no_config; test_bad_config; test_no_jq; test_no_projects
 test_project_list; test_likely_project; test_session_id; test_notion_line
 test_skips_broken; test_body_cap; test_cap; test_cap_units_before_projects
+test_rules_cap; test_crlf_project
 finish
