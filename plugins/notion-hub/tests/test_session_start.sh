@@ -285,11 +285,21 @@ test_rules_tab() {
   assert_contains "$(run_hook "$HOME/code/app")" "$(printf 'Tab\tinside\tthe rules')" "rules tab: tabs survive"
 }
 
+test_pointer_non_string() {
+  setup_hubs
+  patch_hub garden '.hub.pointer = {"a": 1, "b": [2]} | .hub.show_in = ["~/garden"]'
+  local out; out="$(run_hook "$HOME/code/app")"
+  assert_contains "$out" "Notion hub Garden Journal (garden): Garden Journal. Not loaded in this folder;" "pointer non-string: falls back to the name on one line"
+  patch_hub garden '.hub.pointer = "Line one\nLine two" | .hub.name = 7'
+  out="$(run_hook "$HOME/code/app")"
+  assert_contains "$out" "Notion hub garden (garden): Line one Line two. Not loaded in this folder;" "pointer newline: one line, non-string name falls back to id"
+}
+
 test_no_config; test_bad_config; test_no_jq; test_no_index
 test_shared_folder; test_private_folder; test_prefix_not_match
 test_order; test_always_opt_in; test_string_private_paths; test_bad_scopes
 test_cap; test_many_rows
 test_multi_routing_first; test_pointer_outside; test_pointer_no_private_leak; test_inside_show_in
 test_two_hubs_loaded_cap; test_one_bad_hub; test_no_index_one_hub; test_legacy_show_in
-test_cap_cuts_pointer_always; test_skipped_folder; test_rules_tab
+test_cap_cuts_pointer_always; test_skipped_folder; test_rules_tab; test_pointer_non_string
 finish

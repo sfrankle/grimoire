@@ -105,6 +105,10 @@ hub_resolve() {
   esac
   dirs="$(hub_list)"
   names="$(printf '%s\n' "$dirs" | while IFS= read -r d; do [ -n "$d" ] && basename "$d"; done | paste -sd, - | sed 's/,/, /g')"
+  if [ -z "$dirs" ]; then
+    echo "no valid hub folders; hub ids are lowercase letters, digits and dashes. Ignored: $(hub_skipped | paste -sd, - | sed 's/,/, /g')." >&2
+    return 1
+  fi
   if [ -z "$id" ]; then
     count="$(printf '%s\n' "$dirs" | grep -c .)"
     if [ "$count" = 1 ]; then

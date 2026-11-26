@@ -71,7 +71,8 @@ loaded_hub() {
 # Usage: pointer_hub <block> <dir> <id> <name>
 pointer_hub() {
   local b="$1" d="$2" id="$3" name="$4" label pointer
-  pointer="$(jq -r '.hub.pointer // empty' "$d/config.json")"
+  pointer="$(jq -r '(.hub.pointer | strings) // empty' "$d/config.json")"
+  pointer="${pointer//$'\n'/ }"
   [ -n "$pointer" ] || pointer="$name"
   case "$pointer" in *[.!?]) ;; *) pointer="$pointer." ;; esac
   label="Notion hub $name"
@@ -88,7 +89,8 @@ pointer_hub() {
 hub() {
   local id name
   id="$(hub_id "$2")"
-  name="$(jq -r '.hub.name // empty' "$2/config.json")"
+  name="$(jq -r '(.hub.name | strings) // empty' "$2/config.json")"
+  name="${name//$'\n'/ }"
   [ -n "$name" ] || name="${id:-index}"
   if shown_here "$2/config.json"; then
     loaded_hub "$1" "$2" "$id" "$name"

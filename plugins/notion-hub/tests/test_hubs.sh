@@ -60,6 +60,18 @@ test_resolve() {
   assert_exit 1 "resolve legacy: an id fails" -- hub_resolve garden
 }
 
+test_resolve_no_valid_hubs() {
+  local out rc
+  setup_multi
+  rm -rf "$NOTION_HUB_DIR/garden" "$NOTION_HUB_DIR/homelab"
+  mkdir "$NOTION_HUB_DIR/Bad Name"
+  cp "$ROOT/examples/hubs/garden/config.json" "$NOTION_HUB_DIR/Bad Name/config.json"
+  out="$(hub_resolve "" 2>&1)"; rc=$?
+  assert_eq "1" "$rc" "resolve no valid hubs: fails"
+  assert_contains "$out" "no valid hub folders; hub ids are lowercase letters, digits and dashes. Ignored: Bad Name." "resolve no valid hubs: message"
+  assert_not_contains "$out" "more than one hub" "resolve no valid hubs: not the many-hubs message"
+}
+
 test_valid_id() {
   assert_exit 0 "valid id: plain" -- valid_hub_id home-lab2
   assert_exit 1 "valid id: uppercase" -- valid_hub_id Home
@@ -84,5 +96,5 @@ test_path_string() {
   CLAUDE_PROJECT_DIR="$HOME/other" shown_here "$g"; assert_eq "1" "$?" "string show_in: other folder hidden"
 }
 
-test_mode; test_list_sorted; test_list_skips_bad_names; test_legacy_wins; test_resolve; test_valid_id; test_shown_here; test_path_string
+test_mode; test_list_sorted; test_list_skips_bad_names; test_legacy_wins; test_resolve; test_resolve_no_valid_hubs; test_valid_id; test_shown_here; test_path_string
 finish

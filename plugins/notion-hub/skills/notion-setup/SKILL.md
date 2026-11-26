@@ -27,7 +27,9 @@ Ask the user one question at a time, as plain prose.
 3. Add: ask for the hub id (lowercase letters, digits and dashes), the connector, the database link (or search it and let them pick), the `show_in` folders, and a one-line pointer.
    Record the connector, `show_in` and pointer as `hub.connector`, `hub.show_in` and `hub.pointer`.
    Leave `show_in` out to show the hub in every folder.
-   Write into `<root>/<id>/`.
+   If the root is in legacy mode (a top-level `config.json` exists), stop before asking anything else: subfolders are ignored there, so a new hub would never appear.
+   Say the existing hub must be migrated first, and offer the migrate flow.
+   Otherwise write into `<root>/<id>/`.
 4. Migrate: a legacy hub moves into `<root>/<id>/`.
    Ask for the id, then list every move, plus the new routing `rules.md`, and wait for a yes.
    Move `rules.md`, `rules.private.md`, `index.md` and any `rows.json` first and `config.json` last, so a half-done move still reads as legacy.
@@ -54,3 +56,4 @@ Ask the user one question at a time, as plain prose.
 9. With two or more hubs, seed or edit the top-level `rules.md` as routing: which facts go to which hub id, and to ask the user when unclear.
 10. Show every file to write, and write only after the user confirms.
 11. Load the `notion-refresh` skill for that hub's id to build its index.
+    In legacy mode there is no id, so load it without one.

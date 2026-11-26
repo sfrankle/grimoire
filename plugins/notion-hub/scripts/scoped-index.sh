@@ -21,6 +21,7 @@ need_jq || fail "jq is required but not installed."
 if [ "$(hub_mode)" = multi ] && [ -z "${1:-}" ]; then
   first=1
   while IFS= read -r d; do
+    [ -n "$d" ] || continue
     id="$(hub_id "$d")"
     if [ ! -f "$d/index.md" ]; then
       reason="no index yet. Run /notion-refresh $id."

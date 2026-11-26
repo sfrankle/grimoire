@@ -9,11 +9,12 @@ argument-hint: "[hub id]"
 Rebuild a hub's `index.md` from its database.
 The hub root is `$NOTION_HUB_DIR`, or `~/.claude/notion-hub` when that is unset.
 A hub is a subfolder of the root with a `config.json`, or the root itself in legacy mode.
-Each hub uses the connector named in its `hub.connector`, or the Notion connector when that is unset; if it is missing, say so and stop.
+Each hub uses the connector named in its `hub.connector`, or the Notion connector when that is unset; if it is missing, say so for that hub.
 `build-index.sh` lives in this plugin at `../../scripts/`, relative to this skill's folder (`${CLAUDE_PLUGIN_ROOT}/scripts/` in Claude Code).
 Take an optional hub id.
 Without one, refresh every hub in turn: each subfolder with a `config.json` and a valid id.
-If one fails, or its connector is missing, skip that hub only and carry on to the next.
+If one fails, or its connector is missing, skip that hub only, report it and carry on to the next.
+With a single named hub, a missing connector stops the run.
 
 For each hub:
 

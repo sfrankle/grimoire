@@ -95,11 +95,22 @@ test_multi_no_index() {
   assert_contains "$out" "| NAS backup log |" "multi no index: other hub listed"
 }
 
+test_multi_only_invalid() {
+  setup_multi
+  rm -rf "$NOTION_HUB_DIR/garden" "$NOTION_HUB_DIR/homelab"
+  mkdir "$NOTION_HUB_DIR/Bad Name"
+  cp "$ROOT/examples/hubs/garden/config.json" "$NOTION_HUB_DIR/Bad Name/config.json"
+  local out rc
+  out="$(scoped_hub "$HOME")"; rc=$?
+  assert_eq "0" "$rc" "multi only invalid: exits 0"
+  assert_eq "" "$out" "multi only invalid: prints nothing, no empty heading"
+}
+
 test_legacy_with_id() {
   setup; build
   assert_exit 1 "legacy with id: exits 1" -- env CLAUDE_PROJECT_DIR="$HOME" bash "$SCOPED" homelab
 }
 
 test_shared_folder; test_private_folder; test_always_opt_in; test_missing; test_bad_scopes
-test_multi_one; test_multi_private; test_multi_all; test_multi_unknown; test_multi_bad_hub; test_multi_no_index; test_legacy_with_id
+test_multi_one; test_multi_private; test_multi_all; test_multi_unknown; test_multi_bad_hub; test_multi_no_index; test_multi_only_invalid; test_legacy_with_id
 finish
