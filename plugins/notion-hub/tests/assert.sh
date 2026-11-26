@@ -72,3 +72,6 @@ build() { bash "$BUILD" "${1:-$ROWS}" >/dev/null; }
 
 # patch_config '<jq filter>': rewrite the sandbox config in place.
 patch_config() { jq "$1" "$NOTION_HUB_DIR/config.json" > "$T/c" && mv "$T/c" "$NOTION_HUB_DIR/config.json"; }
+
+# patch_hub <id> '<jq filter>': rewrite one hub's config in place (multi mode).
+patch_hub() { jq "$2" "$NOTION_HUB_DIR/$1/config.json" > "$T/c" && mv "$T/c" "$NOTION_HUB_DIR/$1/config.json"; }
