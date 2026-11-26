@@ -1,0 +1,5 @@
+[
+  {"url": "https://www.notion.so/ggg1", "properties": {"Name": "Planting calendar", "Summary": "What to sow each month", "Load": "Always", "Area": "Garden", "Agent access": "Small edits"}},
+  {"url": "https://www.notion.so/ggg2", "properties": {"Name": "Seed inventory", "Summary": "Packets in the shed and their expiry", "Area": "Garden", "Agent access": "Agent owned"}},
+  {"url": "https://www.notion.so/ggg3", "properties": {"Name": "Allotment lease", "Summary": "Lease terms and renewal date", "Load": "Always", "Area": "Private"}}
+]

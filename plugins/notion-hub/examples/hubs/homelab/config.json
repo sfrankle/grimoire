@@ -2,6 +2,8 @@
   "version": 1,
   "hub": {
     "name": "Homelab Notes",
+    "connector": "notion-homelab",
+    "pointer": "Backups, network layout, hardware and how each service is deployed.",
     "database_url": "https://www.notion.so/00000000000000000000000000000000",
     "data_source": "collection://00000000-0000-0000-0000-000000000000"
   },

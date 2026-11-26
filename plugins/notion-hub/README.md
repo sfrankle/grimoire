@@ -82,9 +82,9 @@ All live in `~/.claude/notion-hub/`, or in `$NOTION_HUB_DIR` when that is set.
 None of them are in this repo.
 
 - `config.json`: where the hub is, which columns and values map to the flags, which values are private, and defaults for new pages.
-  See `examples/config.json`.
+  See `examples/hubs/homelab/config.json`.
 - `rules.md`: your rules in plain language, such as what goes in the hub, what goes elsewhere, and when to suggest a save.
-  See `examples/rules.md`.
+  See `examples/hubs/homelab/rules.md`.
 - `rules.private.md`: optional rules that would reveal private material, shown only in private folders.
 - `index.md`: the cached index, written by `/notion-refresh`.
   A new index applies from the next session, because the hook runs at session start.

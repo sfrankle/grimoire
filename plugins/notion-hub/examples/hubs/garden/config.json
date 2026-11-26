@@ -1,0 +1,21 @@
+{
+  "version": 1,
+  "hub": {
+    "name": "Garden Journal",
+    "connector": "notion-garden",
+    "show_in": ["~/garden"],
+    "pointer": "Sowing dates, plant care and harvest notes.",
+    "database_url": "https://www.notion.so/11111111111111111111111111111111",
+    "data_source": "collection://11111111-1111-1111-1111-111111111111"
+  },
+  "fields": {
+    "title": "Name", "summary": "Summary", "keywords": "Tags", "category": "Type",
+    "edit": "Agent access", "load": "Load", "visibility": "Area"
+  },
+  "values": {
+    "edit": { "read_only": ["Read only"], "small_edits": ["Small edits"], "agent_owned": ["Agent owned"] },
+    "load": { "always": ["Always"], "ask": ["Only when asked"] }
+  },
+  "scopes": { "private_values": ["Private"], "private_paths": ["~/notes/personal"], "always_shows_everywhere": false },
+  "new_pages": { "defaults": { "Agent access": "Agent owned" }, "template_url": null, "marker": "*Written by an agent. Kept current automatically.*" }
+}

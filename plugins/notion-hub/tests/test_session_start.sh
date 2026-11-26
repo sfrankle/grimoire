@@ -4,7 +4,7 @@ here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 . "$here/assert.sh"
 
 # setup_rules: the sandbox from assert.sh plus the example rules.
-setup_rules() { setup; cp "$ROOT/examples/rules.md" "$NOTION_HUB_DIR/rules.md"; }
+setup_rules() { setup; cp "$ROOT/examples/hubs/homelab/rules.md" "$NOTION_HUB_DIR/rules.md"; }
 
 # run_hook <project dir>: prints the hook's stdout, stderr merged so noise is caught.
 run_hook() { CLAUDE_PROJECT_DIR="$1" bash "$HOOK" 2>&1; }

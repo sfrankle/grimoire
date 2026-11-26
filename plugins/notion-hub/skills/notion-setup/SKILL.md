@@ -9,7 +9,7 @@ disable-model-invocation: true
 Create or edit `config.json`, `rules.md` and optional `rules.private.md` in the hub folder, using the Notion connector.
 The hub folder is `$NOTION_HUB_DIR`, or `~/.claude/notion-hub` when that is unset.
 Create it if missing.
-The shapes to fill are `../../examples/config.json` and `../../examples/rules.md`.
+The shapes to fill are `../../examples/hubs/homelab/config.json` and `../../examples/hubs/homelab/rules.md`.
 Ask the user one question at a time, as plain prose.
 
 ## Steps
