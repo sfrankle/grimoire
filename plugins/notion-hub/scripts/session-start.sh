@@ -4,7 +4,7 @@
 # Always exits 0 and prints nothing to stderr.
 #
 # A hub whose hub.show_in does not match this folder prints one pointer line and its in-scope always rows.
-# Every other hub prints its heading (multi mode only), rules, index header and rows.
+# Every other hub prints its heading, rules, index header and rows.
 #
 # Output cap: Claude Code caps a hook's plain stdout at 10,000 characters.
 # Over the cap the output is replaced by a file path and a 2,000 character preview.
@@ -20,12 +20,17 @@ here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # The hub parts below write tagged records, one per output line: <block>\t<kind>\t<text>.
 # <block> groups lines that print together (0 is the top of the output, then one per hub).
-# <kind> is F for fixed text, 0 for a loaded hub's always row, P for a pointer-mode hub's always row,
-# 1 for an auto row and 2 for an ask row.
+# <kind> is F for fixed text, 0 for an always row, 1 for an auto row and 2 for an ask row.
 
 # fixed <block> <text>: one F record per line of text.
 fixed() {
-  printf '%s\n' "$2" | awk -v b="$1" '{ print b "\tF\t" $0 }'
+  local line
+  while IFS= read -r line; do printf '%s\tF\t%s\n' "$1" "$line"; done <<<"$2"
+}
+
+# fixed_file <block> <file>: one F record per line of the file, then a blank one.
+fixed_file() {
+  awk -v b="$1" '{ print b "\tF\t" $0 } END { print b "\tF\t" }' "$2"
 }
 
 # rows <block> loaded|pointer <index.md>: the in-scope rows as records (call scope_setup first).
@@ -34,31 +39,22 @@ rows() {
   scoped_rows "$3" | awk -v b="$1" -v mode="$2" '
     {
       split($2, f, "/")
-      k = (f[2] == "always") ? (mode == "pointer" ? "P" : "0") : (f[2] == "ask") ? "2" : "1"
-      if (mode == "pointer" && k != "P") next
+      k = (f[2] == "always") ? "0" : (f[2] == "ask") ? "2" : "1"
+      if (mode == "pointer" && k != "0") next
       print b "\t" k "\t" $0
     }'
 }
 
 # A hub shown in this folder: heading, rules, private rules, index header, rows.
-# Usage: loaded_hub <block> <dir> <id> <name>   (an empty id means the legacy single hub)
+# Usage: loaded_hub <block> <dir> <id> <name>
 loaded_hub() {
   local b="$1" d="$2" id="$3" name="$4"
-  if [ -n "$id" ]; then
-    fixed "$b" "## Notion hub: $name ($id)"
-    fixed "$b" ""
-  fi
-  if [ -f "$d/rules.md" ]; then fixed "$b" "$(cat "$d/rules.md")"; fixed "$b" ""; fi
-  if [ "$SCOPE_IN" = 1 ] && [ -f "$d/rules.private.md" ]; then
-    fixed "$b" "$(cat "$d/rules.private.md")"
-    fixed "$b" ""
-  fi
+  fixed "$b" "## Notion hub: $name ($id)"
+  fixed "$b" ""
+  [ -f "$d/rules.md" ] && fixed_file "$b" "$d/rules.md"
+  [ "$SCOPE_IN" = 1 ] && [ -f "$d/rules.private.md" ] && fixed_file "$b" "$d/rules.private.md"
   if [ ! -f "$d/index.md" ]; then
-    if [ -n "$id" ]; then
-      fixed "$b" "No index yet for $id. Run /notion-refresh $id."
-    else
-      fixed "$b" "No index yet. Run /notion-refresh to build it."
-    fi
+    fixed "$b" "No index yet for $id. Run /notion-refresh $id."
     return 0
   fi
   # The index header is everything above the first row.
@@ -70,17 +66,12 @@ loaded_hub() {
 # A hub not shown in this folder: one pointer line, then its in-scope always rows.
 # Usage: pointer_hub <block> <dir> <id> <name>
 pointer_hub() {
-  local b="$1" d="$2" id="$3" name="$4" label pointer
+  local b="$1" d="$2" id="$3" name="$4" pointer
   pointer="$(jq -r '(.hub.pointer | strings) // empty' "$d/config.json")"
   pointer="${pointer//$'\n'/ }"
   [ -n "$pointer" ] || pointer="$name"
   case "$pointer" in *[.!?]) ;; *) pointer="$pointer." ;; esac
-  label="Notion hub $name"
-  if [ -n "$id" ]; then
-    fixed "$b" "$label ($id): $pointer Not loaded in this folder; run $here/scoped-index.sh $id to list it."
-  else
-    fixed "$b" "$label: $pointer Not loaded in this folder; run $here/scoped-index.sh to list it."
-  fi
+  fixed "$b" "Notion hub $name ($id): $pointer Not loaded in this folder; run $here/scoped-index.sh $id to list it."
   [ -f "$d/index.md" ] && rows "$b" pointer "$d/index.md"
   return 0
 }
@@ -89,9 +80,7 @@ pointer_hub() {
 hub() {
   local id name
   id="$(hub_id "$2")"
-  name="$(jq -r '(.hub.name | strings) // empty' "$2/config.json")"
-  name="${name//$'\n'/ }"
-  [ -n "$name" ] || name="${id:-index}"
+  name="$(hub_name "$2")"
   if shown_here "$2/config.json"; then
     loaded_hub "$1" "$2" "$id" "$name"
   else
@@ -99,11 +88,13 @@ hub() {
   fi
 }
 
-# Every hub in multi mode: routing rules, ignored folders, then each hub in name order.
+# Every hub: the old-layout note, routing rules, ignored folders, then each hub in name order.
 all_hubs() {
-  local root d b=0
+  local root d note b=0
   root="$(hub_dir)"
-  if [ -f "$root/rules.md" ]; then fixed 0 "$(cat "$root/rules.md")"; fixed 0 ""; fi
+  note="$(old_layout_note)"
+  [ -n "$note" ] && fixed 0 "Notion hub: $note"
+  [ -f "$root/rules.md" ] && fixed_file 0 "$root/rules.md"
   while IFS= read -r d; do
     [ -n "$d" ] && fixed 0 "Notion hub folder '$d' ignored: hub ids are lowercase letters, digits and dashes."
   done <<EOF_SKIPPED
@@ -124,7 +115,7 @@ EOF_HUBS
 
 # Print the records within <max> characters.
 # Fixed text always prints. Rows are admitted from one shared pool, in this order:
-# loaded always rows (never cut), pointer always rows, auto rows, ask rows.
+# always rows (never cut), auto rows, ask rows.
 # A row that would pass the cap is left out and counted; kept rows print under their own block.
 # Usage: ... | fit <max>
 fit() {
@@ -146,8 +137,8 @@ fit() {
       else { n++; kind[n] = k; block[n] = b; row[n] = text }
     }
     END {
-      split("0 P 1 2", pri, " ")
-      for (p = 1; p <= 4; p++) for (i = 1; i <= n; i++) {
+      split("0 1 2", pri, " ")
+      for (p = 1; p <= 3; p++) for (i = 1; i <= n; i++) {
         if (kind[i] != pri[p]) continue
         if (pri[p] != "0" && used + length(row[i]) + 1 > max - reserve) { cut++; continue }
         used += length(row[i]) + 1
@@ -157,7 +148,7 @@ fit() {
         b = order[j]
         if (printed && last != "") print ""
         for (i = 1; i <= nfix[b]; i++) { print fix[b, i]; last = fix[b, i]; printed = 1 }
-        for (p = 1; p <= 4; p++) for (i = 1; i <= n; i++)
+        for (p = 1; p <= 3; p++) for (i = 1; i <= n; i++)
           if (keep[i] && block[i] == b && kind[i] == pri[p]) { print row[i]; last = row[i]; printed = 1 }
       }
       if (cut) printf note, cut, more
@@ -165,12 +156,10 @@ fit() {
 }
 
 main() {
-  local mode dir max
-  mode="$(hub_mode)"
-  dir="$(hub_dir)"
-
-  if [ "$mode" = none ]; then
-    echo "Notion hub is not set up. Run /notion-setup to connect your database."
+  local max note
+  if [ -z "$(hub_folders)" ]; then
+    note="$(old_layout_note)"
+    echo "${note:+Notion hub: $note}${note:-Notion hub is not set up. Run /notion-setup to connect your database.}"
     return 0
   fi
   if ! need_jq; then
@@ -180,16 +169,7 @@ main() {
 
   max="${NOTION_HUB_MAX_CHARS:-$DEFAULT_MAX_CHARS}"
   case "$max" in '' | *[!0-9]*) max="$DEFAULT_MAX_CHARS" ;; esac
-
-  if [ "$mode" = multi ]; then
-    all_hubs | fit "$max"
-    return 0
-  fi
-  if ! scope_setup "$dir/config.json"; then
-    echo "Notion hub config is invalid. Run /notion-setup to fix it."
-    return 0
-  fi
-  hub 1 "$dir" | fit "$max"
+  all_hubs | fit "$max"
 }
 
 main || true

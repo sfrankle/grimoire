@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Usage: scoped-index.sh [hub]
-# With a hub id (or a single hub) it prints that hub's rows only.
-# With several hubs and no id it prints each hub's rows under a "## <name> (<id>)" heading.
+# With a hub id it prints that hub's rows only.
+# With no id it prints each hub's rows under a "## <name> (<id>)" heading.
 # A hub with a bad config or no index gets a one-line "## <id>: <reason>" and the run still exits 0.
 # Prints the index rows this folder is allowed to see, using the same scope rules as the session-start hook.
 # Reads CLAUDE_PROJECT_DIR (falls back to PWD) and NOTION_HUB_DIR.
@@ -18,7 +18,7 @@ fail() {
 
 need_jq || fail "jq is required but not installed."
 
-if [ "$(hub_mode)" = multi ] && [ -z "${1:-}" ]; then
+if [ -z "${1:-}" ]; then
   first=1
   while IFS= read -r d; do
     [ -n "$d" ] || continue
@@ -35,7 +35,7 @@ if [ "$(hub_mode)" = multi ] && [ -z "${1:-}" ]; then
     if [ -n "$reason" ]; then
       printf '## %s: %s\n' "$id" "$reason"
     else
-      printf '## %s (%s)\n' "$(jq -r '.hub.name // "Notion hub"' "$d/config.json")" "$id"
+      printf '## %s (%s)\n' "$(hub_name "$d")" "$id"
       scoped_rows "$d/index.md"
     fi
   done <<EOF_HUBS
@@ -44,7 +44,7 @@ EOF_HUBS
   exit 0
 fi
 
-dir="$(hub_resolve "${1:-}" 2>&1)" || fail "$dir"
+dir="$(hub_resolve "$1" 2>&1)" || fail "$dir"
 [ -f "$dir/index.md" ] || fail "no index at $dir/index.md. Run /notion-refresh first."
 scope_setup "$dir/config.json" || fail "$dir/config.json is invalid. Run /notion-setup to fix it."
 scoped_rows "$dir/index.md"

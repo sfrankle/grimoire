@@ -73,7 +73,7 @@ You need:
 ## Set up
 
 Run `/notion-setup`.
-It asks whether to add a hub, edit one or migrate a legacy one.
+It asks whether to add a hub or edit one.
 Adding asks for the hub id, its connector, its database, the folders it shows in and a one-line pointer, then reads the database's columns and proposes how they map to the three flags.
 It then asks which values are private and which folders may see them, and asks a few questions to seed your rules.
 It shows the files, writes them only after you confirm, and builds the first index.
@@ -100,17 +100,18 @@ A folder with another name is ignored, and the session start says so.
 - **Routing rules** are the top-level `rules.md`.
   It tells Claude which hub a fact belongs in, and to ask you when it is unclear.
   See `examples/rules.md`.
-- **Output cap**: all hubs share the one 9500 character budget, and the `always` rows of loaded hubs are never cut.
-  Pointer-mode hubs' `always` rows are admitted after them and can be cut at the cap.
+- **Output cap**: all hubs share the one 9500 character budget, and `always` rows are never cut.
 
 `scoped-index.sh` with no id lists every hub under a `## <name> (<id>)` heading, and `scoped-index.sh <id>` lists one.
 `/notion-refresh` takes an optional hub id and refreshes every hub without one.
 
-### Legacy mode
+One hub is just one subfolder; with only one, the scripts need no id.
 
-A top-level `config.json` means the root is the only hub, as in 0.1.0, and subfolders are ignored.
-Nothing needs to change.
-To move to several hubs, run `/notion-setup migrate`, which shows each move before it makes it.
+### Upgrading from 0.1.0
+
+0.1.0 kept a single hub's files at the top of the root.
+Move `config.json`, `rules.md`, `rules.private.md` and `index.md` into a subfolder named after the hub, such as `homelab/`.
+Until then the session start prints one line saying so.
 
 ## Your files
 
@@ -132,8 +133,6 @@ In each hub's folder, such as `homelab/`:
 - `index.md`: the cached index, written by `/notion-refresh`.
   A new index applies from the next session, because the hook runs at session start.
 - `rows.json`: transient, written and deleted by `/notion-refresh`.
-
-In legacy mode these files sit at the top level instead, and `rules.md` holds the hub's own rules.
 
 ## Changing things later
 

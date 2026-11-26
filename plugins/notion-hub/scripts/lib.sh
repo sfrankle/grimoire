@@ -2,7 +2,7 @@
 # Shared helpers for the notion-hub scripts.
 # Source this file; it sets no options and prints nothing.
 
-# The directory holding config.json, rules.md and index.md.
+# The hub root: routing rules.md plus one folder per hub.
 hub_dir() {
   printf '%s\n' "${NOTION_HUB_DIR:-$HOME/.claude/notion-hub}"
 }
@@ -28,95 +28,72 @@ valid_hub_id() {
   [[ "$1" =~ ^[a-z0-9][a-z0-9-]*$ ]]
 }
 
-# Print the hub layout: legacy (top-level config.json), multi (hub subfolders) or none.
-hub_mode() {
-  local root c
-  root="$(hub_dir)"
-  if [ -f "$root/config.json" ]; then
-    echo legacy
-    return 0
-  fi
-  for c in "$root"/*/config.json; do
-    if [ -f "$c" ]; then
-      echo multi
-      return 0
-    fi
-  done
-  echo none
-}
-
-# Print one hub directory per line, sorted by name: the root in legacy mode,
-# else each direct subfolder that has a config.json and a valid name.
-hub_list() {
-  local root c name
-  root="$(hub_dir)"
-  case "$(hub_mode)" in
-    legacy) printf '%s\n' "$root" ;;
-    multi)
-      for c in "$root"/*/config.json; do
-        [ -f "$c" ] || continue
-        name="$(basename "$(dirname "$c")")"
-        valid_hub_id "$name" && printf '%s\n' "$root/$name"
-      done | LC_ALL=C sort
-      ;;
-  esac
-  return 0
-}
-
-# Print the names of subfolders with a config.json but an invalid hub name (multi mode only).
-hub_skipped() {
-  local root c name
-  [ "$(hub_mode)" = multi ] || return 0
-  root="$(hub_dir)"
-  for c in "$root"/*/config.json; do
-    [ -f "$c" ] || continue
-    name="$(basename "$(dirname "$c")")"
-    valid_hub_id "$name" || printf '%s\n' "$name"
+# Print each direct subfolder of the root that has a config.json, one path per line, sorted.
+hub_folders() {
+  local c
+  for c in "$(hub_dir)"/*/config.json; do
+    [ -f "$c" ] && printf '%s\n' "${c%/config.json}"
   done | LC_ALL=C sort
   return 0
 }
 
-# Print the hub id for a hub directory: the folder name, or nothing for the legacy root.
+# Print one hub directory per line, sorted by name: each hub folder with a valid name.
+hub_list() {
+  local d
+  hub_folders | while IFS= read -r d; do valid_hub_id "${d##*/}" && printf '%s\n' "$d"; done
+  return 0
+}
+
+# Print the names of hub folders whose name is not a valid hub id.
+hub_skipped() {
+  local d
+  hub_folders | while IFS= read -r d; do valid_hub_id "${d##*/}" || printf '%s\n' "${d##*/}"; done
+  return 0
+}
+
+# Print a line about a top-level config.json, the single-hub layout from 0.1.0, or nothing.
+old_layout_note() {
+  local root
+  root="$(hub_dir)"
+  [ -f "$root/config.json" ] || return 0
+  printf '%s\n' "$root/config.json is the old single-hub layout: move it, with rules.md, rules.private.md and index.md, into $root/<hub id>/."
+}
+
+# Print the hub id for a hub directory: its folder name.
 # Usage: hub_id <dir>
 hub_id() {
-  [ "$1" = "$(hub_dir)" ] || basename "$1"
+  printf '%s\n' "${1##*/}"
+}
+
+# Print a hub's display name on one line: hub.name, else its id.
+# Usage: hub_name <dir>
+hub_name() {
+  local name
+  name="$(jq -r '(.hub.name | strings) // empty' "$1/config.json" 2>/dev/null)"
+  name="${name//$'\n'/ }"
+  printf '%s\n' "${name:-$(hub_id "$1")}"
 }
 
 # Print the directory of the hub named <id>.
 # Usage: hub_resolve [id]
-# Legacy mode accepts only an empty id. Multi mode accepts an empty id only when one hub exists.
+# An empty id is accepted only when exactly one hub exists.
 # Prints a message to stderr and returns 1 otherwise.
 hub_resolve() {
-  local id="${1:-}" root dirs names count
+  local id="${1:-}" root dirs names note
   root="$(hub_dir)"
-  case "$(hub_mode)" in
-    none)
-      echo "no config at $root/config.json. Run /notion-setup first." >&2
-      return 1
-      ;;
-    legacy)
-      if [ -n "$id" ]; then
-        echo "unknown hub '$id'. This setup has a single hub; run without a hub name." >&2
-        return 1
-      fi
-      printf '%s\n' "$root"
-      return 0
-      ;;
-  esac
   dirs="$(hub_list)"
-  names="$(printf '%s\n' "$dirs" | while IFS= read -r d; do [ -n "$d" ] && basename "$d"; done | paste -sd, - | sed 's/,/, /g')"
   if [ -z "$dirs" ]; then
-    echo "no valid hub folders; hub ids are lowercase letters, digits and dashes. Ignored: $(hub_skipped | paste -sd, - | sed 's/,/, /g')." >&2
+    note="$(old_layout_note)"
+    echo "no hubs in $root. ${note:+$note }Run /notion-setup first." >&2
     return 1
   fi
+  names="$(printf '%s\n' "$dirs" | sed 's|.*/||' | paste -sd, - | sed 's/,/, /g')"
   if [ -z "$id" ]; then
-    count="$(printf '%s\n' "$dirs" | grep -c .)"
-    if [ "$count" = 1 ]; then
-      printf '%s\n' "$dirs"
-      return 0
-    fi
-    echo "more than one hub; name one of: $names" >&2
-    return 1
+    case "$dirs" in
+      *$'\n'*) echo "more than one hub; name one of: $names" >&2; return 1 ;;
+    esac
+    printf '%s\n' "$dirs"
+    return 0
   fi
   if valid_hub_id "$id" && [ -f "$root/$id/config.json" ]; then
     printf '%s\n' "$root/$id"

@@ -9,16 +9,15 @@ argument-hint: "What to save, or a note to file"
 
 Turn facts from this session, or a note the user names, into hub pages through each hub's connector.
 The hub root is `$NOTION_HUB_DIR`, or `~/.claude/notion-hub` when that is unset.
-A hub is a subfolder of the root with a `config.json`, or the root itself in legacy mode.
+A hub is a subfolder of the root with a `config.json`; its folder name is its id.
 Each hub uses the connector named in its `hub.connector`, or the Notion connector when that is unset; if it is missing, say so and stop.
 Read index rows only through `scoped-index.sh <id>` in this plugin's `../../scripts/` (`${CLAUDE_PLUGIN_ROOT}/scripts/` in Claude Code), which hides rows this folder may not see.
 A hub's `config.json` and `rules.md` may tighten these steps, never loosen them.
 
-0. With several hubs, read the top-level `rules.md` and pick a hub for each fact.
-   If the rules don't settle it, ask the user which hub.
+0. With several hubs, pick a hub for each fact using the top-level `rules.md`.
 1. Pick the facts worth keeping, or read the note the user names, and save only what the user asked for.
    That hub's `rules.md` says what belongs in it.
-2. Match each fact to a row from `scoped-index.sh <id>` (no id in legacy mode) and fetch that page.
+2. Match each fact to a row from `scoped-index.sh <id>` and fetch that page.
 3. Act on the row's edit flag (`ro` for any value not listed under `values.edit`):
    - `ro`: propose the change in chat and make no edit.
    - `edit`: make the smallest edit, in the section the fact belongs in.

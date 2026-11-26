@@ -3,7 +3,8 @@ here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=assert.sh
 . "$here/assert.sh"
 
-scoped() { CLAUDE_PROJECT_DIR="$1" bash "$SCOPED" 2>&1; }
+# scoped <folder> [hub]: run scoped-index.sh from that folder.
+scoped() { local d="$1"; shift; CLAUDE_PROJECT_DIR="$d" bash "$SCOPED" "$@" 2>&1; }
 
 test_shared_folder() {
   setup; build
@@ -30,23 +31,22 @@ test_always_opt_in() {
 
 test_missing() {
   setup
-  assert_exit 1 "no index: exits 1" -- env CLAUDE_PROJECT_DIR="$HOME" bash "$SCOPED"
-  build; rm "$NOTION_HUB_DIR/config.json"
-  assert_exit 1 "no config: exits 1" -- env CLAUDE_PROJECT_DIR="$HOME" bash "$SCOPED"
+  assert_exit 1 "no index: exits 1" -- env CLAUDE_PROJECT_DIR="$HOME" bash "$SCOPED" homelab
+  build; rm "$HUB/config.json"
+  assert_exit 1 "no config: exits 1" -- env CLAUDE_PROJECT_DIR="$HOME" bash "$SCOPED" homelab
 }
 
 test_bad_scopes() {
   setup; build
   patch_config '.scopes = "Personal"'
-  assert_exit 1 "string scopes: exits 1" -- env CLAUDE_PROJECT_DIR="$HOME" bash "$SCOPED"
+  assert_exit 1 "string scopes: exits 1" -- env CLAUDE_PROJECT_DIR="$HOME" bash "$SCOPED" homelab
   assert_not_contains "$(scoped "$HOME/code/app")" "Medical notes" "string scopes: no rows leak"
 }
 
-scoped_hub() { local d="$1"; shift; CLAUDE_PROJECT_DIR="$d" bash "$SCOPED" "$@" 2>&1; }
 
 test_multi_one() {
   setup_multi; build_hub garden "$ROWS_GARDEN"
-  local out; out="$(scoped_hub "$HOME/code/app" garden)"
+  local out; out="$(scoped "$HOME/code/app" garden)"
   assert_contains "$out" "| Planting calendar |" "multi one: shared row listed"
   assert_contains "$out" "| Seed inventory |" "multi one: second shared row listed"
   assert_not_contains "$out" "Allotment lease" "multi one: private row hidden"
@@ -55,13 +55,13 @@ test_multi_one() {
 
 test_multi_private() {
   setup_multi; build_hub garden "$ROWS_GARDEN"
-  local out; out="$(scoped_hub "$HOME/notes/personal" garden)"
+  local out; out="$(scoped "$HOME/notes/personal" garden)"
   assert_eq "3" "$(printf '%s\n' "$out" | grep -c '^- ')" "multi private: all three rows"
 }
 
 test_multi_all() {
   setup_multi; build_hub garden "$ROWS_GARDEN"; build_hub homelab
-  local out; out="$(scoped_hub "$HOME/code/app")"
+  local out; out="$(scoped "$HOME/code/app")"
   assert_contains "$out" "## Garden Journal (garden)" "multi all: garden heading"
   assert_contains "$out" "## Homelab Notes (homelab)" "multi all: homelab heading"
   local g h
@@ -83,14 +83,14 @@ test_multi_bad_hub() {
   setup_multi; build_hub garden "$ROWS_GARDEN"; build_hub homelab
   printf '{' > "$NOTION_HUB_DIR/garden/config.json"
   assert_exit 0 "multi bad hub: exits 0" -- env CLAUDE_PROJECT_DIR="$HOME/code/app" bash "$SCOPED"
-  local out; out="$(scoped_hub "$HOME/code/app")"
+  local out; out="$(scoped "$HOME/code/app")"
   assert_contains "$out" "| NAS backup log |" "multi bad hub: homelab rows still listed"
   assert_contains "$out" "## garden: config is invalid" "multi bad hub: garden named"
 }
 
 test_multi_no_index() {
   setup_multi; build_hub homelab
-  local out; out="$(scoped_hub "$HOME/code/app")"
+  local out; out="$(scoped "$HOME/code/app")"
   assert_contains "$out" "## garden: no index yet. Run /notion-refresh garden." "multi no index: reason"
   assert_contains "$out" "| NAS backup log |" "multi no index: other hub listed"
 }
@@ -98,19 +98,14 @@ test_multi_no_index() {
 test_multi_only_invalid() {
   setup_multi
   rm -rf "$NOTION_HUB_DIR/garden" "$NOTION_HUB_DIR/homelab"
-  mkdir "$NOTION_HUB_DIR/Bad Name"
-  cp "$ROOT/examples/hubs/garden/config.json" "$NOTION_HUB_DIR/Bad Name/config.json"
+  add_bad_hub
   local out rc
-  out="$(scoped_hub "$HOME")"; rc=$?
+  out="$(scoped "$HOME")"; rc=$?
   assert_eq "0" "$rc" "multi only invalid: exits 0"
   assert_eq "" "$out" "multi only invalid: prints nothing, no empty heading"
 }
 
-test_legacy_with_id() {
-  setup; build
-  assert_exit 1 "legacy with id: exits 1" -- env CLAUDE_PROJECT_DIR="$HOME" bash "$SCOPED" homelab
-}
 
 test_shared_folder; test_private_folder; test_always_opt_in; test_missing; test_bad_scopes
-test_multi_one; test_multi_private; test_multi_all; test_multi_unknown; test_multi_bad_hub; test_multi_no_index; test_multi_only_invalid; test_legacy_with_id
+test_multi_one; test_multi_private; test_multi_all; test_multi_unknown; test_multi_bad_hub; test_multi_no_index; test_multi_only_invalid
 finish

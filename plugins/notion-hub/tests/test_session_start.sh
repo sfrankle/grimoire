@@ -4,7 +4,7 @@ here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 . "$here/assert.sh"
 
 # setup_rules: the sandbox from assert.sh plus the example rules.
-setup_rules() { setup; cp "$ROOT/examples/hubs/homelab/rules.md" "$NOTION_HUB_DIR/rules.md"; }
+setup_rules() { setup; cp "$ROOT/examples/hubs/homelab/rules.md" "$HUB/rules.md"; }
 
 # run_hook <project dir>: prints the hook's stdout, stderr merged so noise is caught.
 run_hook() { CLAUDE_PROJECT_DIR="$1" bash "$HOOK" 2>&1; }
@@ -21,7 +21,7 @@ pos() {
 }
 
 test_no_config() {
-  setup_rules; rm "$NOTION_HUB_DIR/config.json"
+  setup_rules; rm "$HUB/config.json"
   local out; out="$(run_hook "$HOME/code/app")"
   assert_eq "1" "$(line_count "$out")" "no config: one line"
   assert_contains "$out" "/notion-setup" "no config: mentions /notion-setup"
@@ -29,12 +29,12 @@ test_no_config() {
 }
 
 test_bad_config() {
-  setup_rules; printf '{' > "$NOTION_HUB_DIR/config.json"
+  setup_rules; printf '{' > "$HUB/config.json"
   local out; out="$(run_hook "$HOME/code/app")"
   assert_eq "1" "$(line_count "$out")" "bad config: one line"
   assert_contains "$out" "/notion-setup" "bad config: mentions /notion-setup"
   assert_exit 0 "bad config: exit 0" -- bash "$HOOK"
-  printf '[1,2]' > "$NOTION_HUB_DIR/config.json"
+  printf '[1,2]' > "$HUB/config.json"
   assert_eq "1" "$(line_count "$(run_hook "$HOME/code/app")")" "array config: one line"
 }
 
@@ -42,7 +42,7 @@ test_no_jq() {
   setup_rules; build
   local bin="$T/bin" tool
   mkdir -p "$bin"
-  for tool in bash awk cat date dirname grep sed tr head wc; do
+  for tool in bash awk cat date dirname grep sed sort tr head wc; do
     ln -s "$(command -v "$tool")" "$bin/$tool"
   done
   local out; out="$(CLAUDE_PROJECT_DIR="$HOME/code/app" PATH="$bin" "$bin/bash" "$HOOK" 2>&1)"
@@ -50,6 +50,13 @@ test_no_jq() {
   assert_eq "1" "$(line_count "$out")" "no jq: one line"
   assert_contains "$out" "jq" "no jq: says jq is needed"
   assert_eq "0" "$code" "no jq: exit 0"
+}
+
+test_old_layout() {
+  setup_rules; mv "$HUB"/* "$NOTION_HUB_DIR/"; rmdir "$HUB"
+  local out; out="$(run_hook "$HOME/code/app")"
+  assert_eq "1" "$(line_count "$out")" "old layout: one line"
+  assert_contains "$out" "is the old single-hub layout" "old layout: says how to move it"
 }
 
 test_no_index() {
@@ -62,7 +69,7 @@ test_no_index() {
 
 test_shared_folder() {
   setup_rules; build
-  printf 'PRIVATE-RULES-MARKER\n' > "$NOTION_HUB_DIR/rules.private.md"
+  printf 'PRIVATE-RULES-MARKER\n' > "$HUB/rules.private.md"
   local out; out="$(run_hook "$HOME/code/app")"
   assert_contains "$out" "| NAS backup log |" "shared: NAS backup log shown"
   assert_contains "$out" "| Network layout |" "shared: Network layout shown"
@@ -75,7 +82,7 @@ test_shared_folder() {
 
 test_private_folder() {
   setup_rules; build
-  printf 'PRIVATE-RULES-MARKER\n' > "$NOTION_HUB_DIR/rules.private.md"
+  printf 'PRIVATE-RULES-MARKER\n' > "$HUB/rules.private.md"
   local out; out="$(run_hook "$HOME/notes/personal/sub")"
   assert_eq "6" "$(rows_of "$out")" "private: all six rows"
   assert_contains "$out" "PRIVATE-RULES-MARKER" "private: rules.private.md printed"
@@ -85,7 +92,7 @@ test_private_folder() {
 
 test_prefix_not_match() {
   setup_rules; build
-  printf 'PRIVATE-RULES-MARKER\n' > "$NOTION_HUB_DIR/rules.private.md"
+  printf 'PRIVATE-RULES-MARKER\n' > "$HUB/rules.private.md"
   local out; out="$(run_hook "$HOME/notes/personal-old")"
   assert_not_contains "$out" "| Medical notes |" "prefix: personal-old does not unlock private rows"
   assert_not_contains "$out" "PRIVATE-RULES-MARKER" "prefix: personal-old does not print private rules"
@@ -240,38 +247,19 @@ test_no_index_one_hub() {
   assert_contains "$out" "Notion hub Garden Journal (garden): " "no index one hub: pointer line still printed"
 }
 
-test_legacy_show_in() {
-  setup_rules; build
-  patch_config '.hub.show_in = "~/code/homelab"'
-  local out; out="$(run_hook "$HOME/code/app")"
-  assert_contains "$out" "Notion hub Homelab Notes: Backups, network layout, hardware and how each service is deployed. Not loaded in this folder; run $SCOPED to list it." "legacy show_in: pointer line without an id"
-  assert_not_contains "$out" "(homelab)" "legacy show_in: no hub id in the label"
-  assert_not_contains "$out" "scoped-index.sh homelab" "legacy show_in: no hub id after scoped-index.sh"
-  assert_not_contains "$out" "| Working style |" "legacy show_in: private always row hidden"
-  assert_not_contains "$out" "| NAS backup log |" "legacy show_in: no auto rows"
-  assert_not_contains "$out" "Homelab Notes rules" "legacy show_in: rules hidden"
-  out="$(run_hook "$HOME/code/homelab")"
-  assert_contains "$out" "| NAS backup log |" "legacy show_in: loaded inside show_in"
-  assert_not_contains "$out" "Not loaded in this folder" "legacy show_in: no pointer inside show_in"
-}
 
-test_cap_cuts_pointer_always() {
+test_cap_keeps_pointer_always() {
   setup_hubs
   patch_hub homelab '.scopes.always_shows_everywhere = true'
-  local full out; full="$(run_hook "$HOME/code/app")"
-  assert_contains "$full" "| Planting calendar |" "pointer cap: pointer always row shown uncapped"
-  out="$(NOTION_HUB_MAX_CHARS=10 run_hook "$HOME/code/app")"
-  assert_not_contains "$out" "| Planting calendar |" "pointer cap: pointer always row cut"
-  assert_contains "$out" "| Working style |" "pointer cap: loaded always row kept"
-  assert_contains "$out" "5 more rows did not fit" "pointer cap: cut rows counted across hubs"
-  out="$(NOTION_HUB_MAX_CHARS=$(( ${#full} - 1 )) run_hook "$HOME/code/app")"
-  assert_contains "$out" "| Planting calendar |" "pointer cap: pointer always row outranks auto rows"
-  assert_contains "$out" "did not fit" "pointer cap: auto rows cut first"
+  local out; out="$(NOTION_HUB_MAX_CHARS=10 run_hook "$HOME/code/app")"
+  assert_contains "$out" "| Planting calendar |" "pointer cap: pointer always row never cut"
+  assert_contains "$out" "| Working style |" "pointer cap: loaded always row never cut"
+  assert_contains "$out" "4 more rows did not fit" "pointer cap: cut rows counted across hubs"
 }
 
 test_skipped_folder() {
   setup_hubs
-  mkdir -p "$NOTION_HUB_DIR/Bad Name"; cp "$NOTION_HUB_DIR/garden/config.json" "$NOTION_HUB_DIR/Bad Name/"
+  add_bad_hub
   local out; out="$(run_hook "$HOME/code/app")"
   assert_contains "$out" "Notion hub folder 'Bad Name' ignored: hub ids are lowercase letters, digits and dashes." "skipped: ignored line"
   assert_eq "1" "$(printf '%s\n' "$out" | grep -c 'ignored: hub ids')" "skipped: one ignored line"
@@ -281,7 +269,7 @@ test_skipped_folder() {
 
 test_rules_tab() {
   setup_hubs
-  printf 'Tab\tinside\tthe rules\n' >> "$NOTION_HUB_DIR/rules.md"
+  printf 'Tab\tinside\tthe rules\n' >> "$HUB/rules.md"
   assert_contains "$(run_hook "$HOME/code/app")" "$(printf 'Tab\tinside\tthe rules')" "rules tab: tabs survive"
 }
 
@@ -295,11 +283,11 @@ test_pointer_non_string() {
   assert_contains "$out" "Notion hub garden (garden): Line one Line two. Not loaded in this folder;" "pointer newline: one line, non-string name falls back to id"
 }
 
-test_no_config; test_bad_config; test_no_jq; test_no_index
+test_no_config; test_bad_config; test_no_jq; test_old_layout; test_no_index
 test_shared_folder; test_private_folder; test_prefix_not_match
 test_order; test_always_opt_in; test_string_private_paths; test_bad_scopes
 test_cap; test_many_rows
 test_multi_routing_first; test_pointer_outside; test_pointer_no_private_leak; test_inside_show_in
-test_two_hubs_loaded_cap; test_one_bad_hub; test_no_index_one_hub; test_legacy_show_in
-test_cap_cuts_pointer_always; test_skipped_folder; test_rules_tab; test_pointer_non_string
+test_two_hubs_loaded_cap; test_one_bad_hub; test_no_index_one_hub
+test_cap_keeps_pointer_always; test_skipped_folder; test_rules_tab; test_pointer_non_string
 finish

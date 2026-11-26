@@ -1,8 +1,7 @@
 #!/usr/bin/env bash
 # Usage: build-index.sh <rows.json> [hub]
 # Turns raw connector rows into index.md in that hub's folder.
-# With one hub folder the id may be left out; with several, name one.
-# A legacy setup (config.json at the top of $(hub_dir)) takes no id.
+# With one hub the id may be left out; with several, name one.
 # On any error it prints one reason to stderr, exits 1 and leaves index.md as it was.
 
 here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -29,7 +28,7 @@ jq -e --slurpfile cfg "$config" '$cfg[0].fields.title as $t | any(.[]; (.propert
 tmp="$(mktemp "$dir/.index.md.XXXXXX")" || fail "cannot write to $dir."
 trap 'rm -f "$tmp"' EXIT
 
-name="$(jq -r '.hub.name // "Notion hub"' "$config")"
+name="$(hub_name "$dir")"
 url="$(jq -r '.hub.database_url // ""' "$config")"
 
 {
