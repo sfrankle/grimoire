@@ -10,8 +10,8 @@ for manifest in plugins/*/.claude-plugin/plugin.json; do
   dir="${manifest%/.claude-plugin/plugin.json}"
   plugin="${dir#plugins/}"
 
-  # Tests don't ship to users, so they don't need a bump.
-  if git diff --quiet "$base"...HEAD -- "$dir" ":(exclude)$dir/tests"; then
+  # Tests and the README change nothing a user runs, so they don't need a bump.
+  if git diff --quiet "$base"...HEAD -- "$dir" ":(exclude)$dir/tests" ":(exclude)$dir/README.md"; then
     continue
   fi
 

@@ -32,6 +32,30 @@ Saving goes the other way.
 `/notion-save` turns what a session learned into hub pages, checking each row's edit flag first.
 Claude never writes to the hub unasked.
 
+## Why it works this way
+
+Each column in the hub answers a question Claude would otherwise have to guess.
+
+| Column | Tells Claude | Why |
+| --- | --- | --- |
+| Summary | What the page says | Write the facts, not the topic, and the index alone often answers the question |
+| Keywords | Which tasks the page is for | Claude picks the right page without opening the whole hub |
+| Load | When to open the page | Every `always` page costs every session, so keep that list short |
+| Visibility | Which folders see the page | Personal pages stay out of shared projects |
+| Edit | Whether it may change the page | Your decisions stay in your words; Claude suggests changes in chat instead |
+
+Why an edit column and not Notion's page lock?
+A lock only blocks edits in the Notion app, not through the API the connector uses ([Notion API docs](https://developers.notion.com/reference/patch-page)).
+It also locks you out of your own page.
+The column is an instruction Claude follows, not a hard block, but Claude sees it in the index before it opens anything.
+
+A few other choices:
+
+- Notion, not `CLAUDE.md`, because you already read and edit it there, from any device.
+- The index is a local file because the session-start hook runs before Claude and can't reach Notion. The header shows its age so you know when to refresh.
+- Refresh goes through the connector, so there's no API token to set up or lose.
+- Claude never saves unasked. It suggests a save and you decide.
+
 ## Install
 
 ```
