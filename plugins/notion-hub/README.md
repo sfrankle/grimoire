@@ -99,7 +99,8 @@ A folder with another name is ignored, and the session start says so.
 - **Routing rules** are the top-level `rules.md`.
   It tells Claude which hub a fact belongs in, and to ask you when it is unclear.
   See `examples/rules.md`.
-- **Output cap**: all hubs share the one 9500 character budget, and `always` rows are never cut.
+- **Output cap**: all hubs share the one 9500 character budget, and the `always` rows of loaded hubs are never cut.
+  Pointer-mode hubs' `always` rows are admitted after them and can be cut at the cap.
 
 `scoped-index.sh` with no id lists every hub under a `## <name> (<id>)` heading, and `scoped-index.sh <id>` lists one.
 `/notion-refresh` takes an optional hub id and refreshes every hub without one.

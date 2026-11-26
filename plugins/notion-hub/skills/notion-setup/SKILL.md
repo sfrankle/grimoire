@@ -18,18 +18,21 @@ Ask the user one question at a time, as plain prose.
 
 ## Steps
 
-1. Check the hub's connector and `jq` are available.
-   If either is missing, say which in one line, with the install command for `jq`, and stop.
+1. Check `jq` is available.
+   If it is missing, say so in one line, with the install command, and stop.
+   Check the hub's connector once it is known: asked for in step 3, or read from `hub.connector` when editing or migrating.
+   If it is missing, say so in one line and stop.
 2. Ask whether to add a hub, edit one or migrate a legacy hub, unless the argument says.
    Edit loads the named hub's files and keeps every unchanged value, showing a diff before writing.
 3. Add: ask for the hub id (lowercase letters, digits and dashes), the connector, the database link (or search it and let them pick), the `show_in` folders, and a one-line pointer.
-   Record the last three as `hub.connector`, `hub.show_in` and `hub.pointer`.
+   Record the connector, `show_in` and pointer as `hub.connector`, `hub.show_in` and `hub.pointer`.
    Leave `show_in` out to show the hub in every folder.
    Write into `<root>/<id>/`.
 4. Migrate: a legacy hub moves into `<root>/<id>/`.
-   Ask for the id, then list every move and wait for a yes.
+   Ask for the id, then list every move, plus the new routing `rules.md`, and wait for a yes.
    Move `rules.md`, `rules.private.md`, `index.md` and any `rows.json` first and `config.json` last, so a half-done move still reads as legacy.
    Then write a new top-level `rules.md` for routing, since in multi mode that file means routing and the old one held this hub's rules.
+   The migration ends there, with no refresh needed.
 5. Fetch the data source and read its schema: property names and options.
    Propose `fields` from the property names, with `title` and `summary` required.
    Propose `values` from the options:
