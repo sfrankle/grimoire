@@ -37,6 +37,14 @@ log="$udir/log.md"
 date_str="${THREADS_TODAY:-$(date +%F)}"
 lock="$udir/.log.lock"
 
+# The temp file is made before the lock, because the lock must be taken with no $(...) after it.
+# Newer bash can run the EXIT trap inside a command substitution, which would free the lock mid-write.
+tmp="$(mktemp "$udir/.log.XXXXXX")" || exit 1
+trap 'rm -f "$tmp"' EXIT
+# mktemp makes the file 0600; give it the umask's mode, the same as the unit's other files.
+mode="$(printf '%o' $((0666 & ~$(umask))))"
+chmod "$mode" "$tmp" || exit 1
+
 # mkdir is atomic on both macOS and Linux, so only one session holds the lock at a time.
 max_tries="${THREADS_LOCK_TRIES:-100}"
 case "$max_tries" in '' | *[!0-9]* | 0) max_tries=100 ;; esac
@@ -49,11 +57,7 @@ until mkdir "$lock" 2>/dev/null; do
   fi
   sleep 0.1
 done
-tmp=""
 trap 'rm -f "$tmp"; rmdir "$lock"' EXIT
-tmp="$(mktemp "$udir/.log.XXXXXX")" || exit 1
-# mktemp makes the file 0600; give it the umask's mode, the same as the unit's other files.
-chmod "$(printf '%o' $((0666 & ~$(umask))))" "$tmp" || exit 1
 
 # Rewrite the log with this session's line in place of its old one, or at the end.
 # Values go in through the environment, since awk -v would interpret backslash escapes.
