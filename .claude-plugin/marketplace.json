@@ -24,7 +24,7 @@
     {
       "name": "notion-hub",
       "source": "./plugins/notion-hub",
-      "description": "Use a Notion database as your agent's long-term memory index."
+      "description": "Use Notion databases as your agent's long-term memory index, one hub per workspace."
     },
     {
       "name": "threads",

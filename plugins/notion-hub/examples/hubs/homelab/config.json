@@ -2,6 +2,8 @@
   "version": 1,
   "hub": {
     "name": "Homelab Notes",
+    "connector": "notion-homelab",
+    "pointer": "Backups, network layout, hardware and how each service is deployed.",
     "database_url": "https://www.notion.so/00000000000000000000000000000000",
     "data_source": "collection://00000000-0000-0000-0000-000000000000"
   },
@@ -14,5 +16,6 @@
     "load": { "always": ["Always"], "ask": ["Only when asked"] }
   },
   "scopes": { "private_values": ["Personal"], "private_paths": ["~/notes/personal"], "always_shows_everywhere": false },
+  "saves": { "update_owned": "auto", "create": "ask" },
   "new_pages": { "defaults": { "Agent access": "Agent owned" }, "template_url": null, "marker": "*Written by an agent. Kept current automatically.*" }
 }
