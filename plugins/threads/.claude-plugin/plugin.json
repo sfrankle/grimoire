@@ -1,6 +1,6 @@
 {
   "name": "threads",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Give multi-session work a home your agent finds on its own.",
   "author": { "name": "sfrankle" },
   "repository": "https://github.com/sfrankle/grimoire",

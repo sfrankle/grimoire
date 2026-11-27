@@ -46,18 +46,32 @@ mode="$(printf '%o' $((0666 & ~$(umask))))"
 chmod "$mode" "$tmp" || exit 1
 
 # mkdir is atomic on both macOS and Linux, so only one session holds the lock at a time.
+# The holder writes its own token into the lock, and on exit removes the lock only while that token is still there.
+# So a release can never free a lock another session holds, which on CI runners lost lines.
+# noclobber makes writing the token a second exclusive step, in case two sessions ever both see mkdir succeed.
+token="${tmp##*/}"
+owner="$lock/owner"
 max_tries="${THREADS_LOCK_TRIES:-100}"
 case "$max_tries" in '' | *[!0-9]* | 0) max_tries=100 ;; esac
 tries=0
-until mkdir "$lock" 2>/dev/null; do
+until mkdir "$lock" 2>/dev/null && { set -C; printf '%s\n' "$token" 2>/dev/null > "$owner"; }; do
+  set +C
   tries=$((tries + 1))
   if [ "$tries" -ge "$max_tries" ]; then
-    echo "log is locked: $lock (remove it if no other session is writing)" >&2
+    echo "log is locked: $lock (remove it with rm -r if no other session is writing)" >&2
     exit 5
   fi
   sleep 0.1
 done
-trap 'rm -f "$tmp"; rmdir "$lock"' EXIT
+set +C
+release() {
+  rm -f "$tmp"
+  held=""
+  read -r held 2>/dev/null < "$owner"
+  [ "$held" = "$token" ] || return 0
+  rm -f "$owner" && rmdir "$lock"
+}
+trap release EXIT
 
 # Rewrite the log with this session's line in place of its old one, or at the end.
 # Values go in through the environment, since awk -v would interpret backslash escapes.
